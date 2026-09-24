@@ -1,0 +1,25 @@
+spring:
+  application:
+    name: tripcheck-server
+  profiles:
+    active: dev
+  jpa:
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+
+server:
+  port: 8081
+
+app:
+  jwt:
+    secret: "404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970"
+    expiration-ms: 86400000
+    cookie-name: "TRIPCHECK_TOKEN"
+  cors:
+    allowed-origins: "http://localhost:4200"
+  webauthn:
+    rp-id: "localhost"
+    rp-name: "TripCheck"
+    origin: "http://localhost:4200"

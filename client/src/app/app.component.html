@@ -1,0 +1,27 @@
+<div class="app-layout">
+  <header class="app-header">
+    <div class="header-inner">
+      <a routerLink="/trips" class="brand-link">
+        <span class="brand-logo">✈️</span>
+        <span class="brand-name">TripCheck</span>
+      </a>
+
+      <nav class="nav-links">
+        @if (authService.isAuthenticated()) {
+          <a routerLink="/trips" class="nav-item">My Trips</a>
+          <a routerLink="/trips/new" class="nav-item new-trip-btn">+ New Trip</a>
+          <div class="user-menu">
+            <span class="username-badge">👤 {{ authService.currentUser()?.username }}</span>
+            <button type="button" class="btn-logout" (click)="onLogout()">Sign Out</button>
+          </div>
+        } @else {
+          <a routerLink="/login" class="nav-item nav-btn">Sign In</a>
+        }
+      </nav>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <router-outlet />
+  </main>
+</div>

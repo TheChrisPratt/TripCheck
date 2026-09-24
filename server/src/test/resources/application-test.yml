@@ -1,0 +1,26 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=MySQL
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    database-platform: org.hibernate.dialect.H2Dialect
+
+server:
+  port: 0
+
+app:
+  jwt:
+    secret: "404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970"
+    expiration-ms: 3600000
+    cookie-name: "TRIPCHECK_TOKEN"
+  cors:
+    allowed-origins: "http://localhost:4200"
+  webauthn:
+    rp-id: "localhost"
+    rp-name: "TripCheck Test"
+    origin: "http://localhost:4200"

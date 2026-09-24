@@ -1,0 +1,25 @@
+# Gradle & Java
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# Node & Angular
+node_modules/
+client/dist/
+client/.angular/
+.npm/
+
+# IDE & Editors
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+.DS_Store
+*.log
+
+# Environment & Local Secrets
+.env
+.env.local
