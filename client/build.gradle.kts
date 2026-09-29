@@ -6,7 +6,9 @@ plugins {
 }
 
 node {
-  download.set(false)
+  version.set("20.11.0")
+  npmVersion.set("10.2.4")
+  download.set(true)
 }
 
 tasks.npmInstall {
