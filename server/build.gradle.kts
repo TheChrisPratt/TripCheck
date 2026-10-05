@@ -52,6 +52,10 @@ tasks.withType<Test> {
   }
 }
 
+tasks.withType<War> {
+  archiveBaseName.set("TripCheck")
+}
+
 tasks.named<ProcessResources>("processResources") {
   dependsOn(":client:npmBuild")
   from(project(":client").file("dist/client/browser")) {
