@@ -21,7 +21,7 @@ describe('AuthService', () => {
     httpTesting = TestBed.inject(HttpTestingController);
 
     // handle the constructor initial call
-    const initialReq = httpTesting.expectOne('/api/auth/me');
+    const initialReq = httpTesting.expectOne('api/auth/me');
     initialReq.flush({ authenticated: false });
   });
 
@@ -39,7 +39,7 @@ describe('AuthService', () => {
       expect(user.username).toBe('alice');
     });
 
-    const req = httpTesting.expectOne('/api/auth/me');
+    const req = httpTesting.expectOne('api/auth/me');
     expect(req.request.method).toBe('GET');
     req.flush({ authenticated: true, username: 'alice' });
 

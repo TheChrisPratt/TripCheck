@@ -46,7 +46,7 @@ describe('TripService', () => {
       expect(trips[0].name).toBe('Summer Roadtrip');
     });
 
-    const req = httpTesting.expectOne('/api/trips');
+    const req = httpTesting.expectOne('api/trips');
     expect(req.request.method).toBe('GET');
     req.flush(mockTrips);
   });
@@ -69,7 +69,7 @@ describe('TripService', () => {
       expect(res.name).toBe('Pacific Coast');
     });
 
-    const req = httpTesting.expectOne('/api/trips');
+    const req = httpTesting.expectOne('api/trips');
     expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual(tripDto);
     req.flush(mockResponse);
@@ -87,7 +87,7 @@ describe('TripService', () => {
       expect(res.status).toBe(TaskStatus.COMPLETED);
     });
 
-    const req = httpTesting.expectOne('/api/tasks/5/status');
+    const req = httpTesting.expectOne('api/tasks/5/status');
     expect(req.request.method).toBe('PATCH');
     expect(req.request.body).toEqual({ status: TaskStatus.COMPLETED });
     req.flush(mockTask);

@@ -36,3 +36,4 @@
 - Client: Adhere to official Angular style guide guidelines (Strict mode enabled).
 - Database: Provide a `docker-compose.yml` for spinning up a local MySQL instance during development.
 - All: Maintain consistent code formatting within each file.
+- Documentation: Keep the documentation in README.md up to date.

@@ -10,9 +10,9 @@ import { Task, CreateTaskDto, TaskStatus } from '../models/task.model';
 })
 export class TripService {
   private http = inject(HttpClient);
-  private baseUrl = '/api/trips';
-  private stopUrl = '/api/stops';
-  private taskUrl = '/api/tasks';
+  private baseUrl = 'api/trips';
+  private stopUrl = 'api/stops';
+  private taskUrl = 'api/tasks';
 
   getTrips(): Observable<TripSummary[]> {
     return this.http.get<TripSummary[]>(this.baseUrl);

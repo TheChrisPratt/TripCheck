@@ -1,5 +1,6 @@
 plugins {
   java
+  war
   id("org.springframework.boot")
   id("io.spring.dependency-management")
 }
@@ -16,6 +17,7 @@ java {
 dependencies {
     // Spring Boot Core & Web
   implementation("org.springframework.boot:spring-boot-starter-web")
+  providedRuntime("org.springframework.boot:spring-boot-starter-tomcat")
   implementation("org.springframework.boot:spring-boot-starter-data-jpa")
   implementation("org.springframework.boot:spring-boot-starter-validation")
 
@@ -44,4 +46,15 @@ dependencies {
 
 tasks.withType<Test> {
   useJUnitPlatform()
+  testLogging {
+    events("passed", "skipped", "failed", "standardOut", "standardError")
+    showStandardStreams = true
+  }
+}
+
+tasks.named<ProcessResources>("processResources") {
+  dependsOn(":client:npmBuild")
+  from(project(":client").file("dist/client/browser")) {
+    into("static")
+  }
 }

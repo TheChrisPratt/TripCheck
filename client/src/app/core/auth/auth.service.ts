@@ -2,7 +2,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { firstValueFrom, Observable, of } from 'rxjs';
-import { catchError, map, tap } from 'rxjs/operators';
+import { catchError, tap } from 'rxjs/operators';
 import * as webauthnJson from '@github/webauthn-json';
 
 export interface UserInfo {
@@ -30,7 +30,7 @@ export class AuthService {
   }
 
   checkAuthStatus(): Observable<UserInfo> {
-    return this.http.get<UserInfo>('/api/auth/me', { withCredentials: true }).pipe(
+    return this.http.get<UserInfo>('api/auth/me', { withCredentials: true }).pipe(
       tap((user) => {
         this.currentUser.set(user);
       }),
@@ -48,7 +48,7 @@ export class AuthService {
       // 1. Get creation options from server
       const creationOptionsResponse = await firstValueFrom(
         this.http.post<any>(
-          '/api/auth/webauthn/register-request',
+          'api/auth/webauthn/register-request',
           { username, displayName: displayName || username },
           { withCredentials: true }
         )
@@ -63,7 +63,7 @@ export class AuthService {
       // 3. Finish registration on server
       const finishResponse = await firstValueFrom(
         this.http.post<any>(
-          '/api/auth/webauthn/register-finish',
+          'api/auth/webauthn/register-finish',
           {
             username,
             credential
@@ -86,7 +86,7 @@ export class AuthService {
       // 1. Get assertion options from server
       const assertionOptionsResponse = await firstValueFrom(
         this.http.post<any>(
-          '/api/auth/webauthn/login-request',
+          'api/auth/webauthn/login-request',
           { username },
           { withCredentials: true }
         )
@@ -100,7 +100,7 @@ export class AuthService {
       // 3. Finish login on server
       const finishResponse = await firstValueFrom(
         this.http.post<any>(
-          '/api/auth/webauthn/login-finish',
+          'api/auth/webauthn/login-finish',
           {
             username,
             credential
@@ -119,7 +119,7 @@ export class AuthService {
 
   async logout(): Promise<void> {
     try {
-      await firstValueFrom(this.http.post('/api/auth/logout', {}, { withCredentials: true }));
+      await firstValueFrom(this.http.post('api/auth/logout', {}, { withCredentials: true }));
     } catch {
       // ignore
     }
