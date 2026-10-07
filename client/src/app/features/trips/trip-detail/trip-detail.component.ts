@@ -2,13 +2,14 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { TripService } from '../../../services/trip.service';
-import { TripDetail } from '../../../models/trip.model';
+import { TripDetail, UpdateTripDto } from '../../../models/trip.model';
 import { Task, TaskStatus } from '../../../models/task.model';
 import { CreateStopDto } from '../../../models/stop.model';
 import { TaskItemComponent } from '../../tasks/task-item/task-item.component';
 import { TaskModalComponent } from '../../tasks/task-modal/task-modal.component';
 import { StopCardComponent } from '../../stops/stop-card/stop-card.component';
 import { StopModalComponent } from '../../stops/stop-modal/stop-modal.component';
+import { TripEditModalComponent } from '../trip-edit-modal/trip-edit-modal.component';
 
 @Component({
   selector: 'app-trip-detail',
@@ -19,7 +20,8 @@ import { StopModalComponent } from '../../stops/stop-modal/stop-modal.component'
     TaskItemComponent,
     TaskModalComponent,
     StopCardComponent,
-    StopModalComponent
+    StopModalComponent,
+    TripEditModalComponent
   ],
   template: `
     <div class="trip-detail-container">
@@ -52,9 +54,14 @@ import { StopModalComponent } from '../../stops/stop-modal/stop-modal.component'
                   </span>
                 </div>
               </div>
-              <button type="button" class="btn btn-primary" (click)="showAddStopModal = true">
-                + Add Stop to Trip
-              </button>
+              <div class="header-actions">
+                <button type="button" class="btn btn-outline" (click)="showEditTripModal = true">
+                  ✏️ Edit Trip
+                </button>
+                <button type="button" class="btn btn-primary" (click)="showAddStopModal = true">
+                  + Add Stop to Trip
+                </button>
+              </div>
             </div>
           </div>
 
@@ -220,6 +227,15 @@ import { StopModalComponent } from '../../stops/stop-modal/stop-modal.component'
           (modalClosed)="showAddStopModal = false"
         />
       }
+
+      @if (showEditTripModal && trip()) {
+        <app-trip-edit-modal
+          [initialName]="trip()!.name"
+          [initialStartingDate]="trip()!.startingDate"
+          (tripSubmitted)="onEditTripSubmitted($event)"
+          (modalClosed)="showEditTripModal = false"
+        />
+      }
     </div>
   `,
   styles: [`
@@ -253,6 +269,12 @@ import { StopModalComponent } from '../../stops/stop-modal/stop-modal.component'
       align-items: center;
       flex-wrap: wrap;
       gap: 16px;
+    }
+    .header-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
     }
     .trip-title {
       margin: 0 0 10px 0;
@@ -430,6 +452,7 @@ export class TripDetailComponent implements OnInit {
   showDepartureDayModal = false;
   showReturnDayModal = false;
   showAddStopModal = false;
+  showEditTripModal = false;
 
   isPreTripCollapsed = signal<boolean>(false);
   isDepartureDayCollapsed = signal<boolean>(false);
@@ -581,6 +604,19 @@ export class TripDetailComponent implements OnInit {
         }
       },
       error: (err) => alert(err?.error?.message || 'Failed to add departure task.')
+    });
+  }
+
+  onEditTripSubmitted(dto: UpdateTripDto): void {
+    if (!this.trip()) return;
+    this.tripService.updateTrip(this.trip()!.id, dto).subscribe({
+      next: (updatedTrip) => {
+        this.trip.set(updatedTrip);
+        this.showEditTripModal = false;
+      },
+      error: (err) => {
+        alert(err?.error?.message || 'Failed to update trip.');
+      }
     });
   }
 }

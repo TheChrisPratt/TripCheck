@@ -1,9 +1,14 @@
 package com.anodyzed.tripcheck.trip;
 
+import jakarta.servlet.http.Cookie;
+
 import com.anodyzed.tripcheck.dto.CreateTripRequest;
-import com.anodyzed.tripcheck.model.TaskStatus;
 import com.anodyzed.tripcheck.security.jwt.JwtService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.time.LocalDate;
+import java.util.Map;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -14,12 +19,12 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
-import jakarta.servlet.http.Cookie;
-import java.time.LocalDate;
-import java.util.Map;
-
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -59,7 +64,7 @@ class TripResourceTest {
 
         Map<?, ?> tripData = objectMapper.readValue(createTripResult.getResponse().getContentAsString(), Map.class);
         Number tripIdNum = (Number) tripData.get("id");
-        Long tripId = tripIdNum.longValue();
+        long tripId = tripIdNum.longValue();
 
         // 2. Add Pre-Trip Task
         mockMvc.perform(post("/api/trips/" + tripId + "/tasks/pre-trip")
@@ -99,7 +104,7 @@ class TripResourceTest {
 
         Map<?, ?> stopData = objectMapper.readValue(addStopResult.getResponse().getContentAsString(), Map.class);
         Number stopIdNum = (Number) stopData.get("id");
-        Long stopId = stopIdNum.longValue();
+        long stopId = stopIdNum.longValue();
 
         // 6. Add Arrival Task to Stop
         MvcResult arrivalTaskResult = mockMvc.perform(post("/api/stops/" + stopId + "/tasks/arrival")
@@ -112,7 +117,7 @@ class TripResourceTest {
 
         Map<?, ?> taskData = objectMapper.readValue(arrivalTaskResult.getResponse().getContentAsString(), Map.class);
         Number taskIdNum = (Number) taskData.get("id");
-        Long taskId = taskIdNum.longValue();
+        long taskId = taskIdNum.longValue();
 
         // 7. Toggle Task Status
         mockMvc.perform(patch("/api/tasks/" + taskId + "/status")
@@ -130,11 +135,22 @@ class TripResourceTest {
                 .andExpect(jsonPath("$.stops[0].name").value("South Rim Lodge"))
                 .andExpect(jsonPath("$.endingDate").value("2026-10-08"));
 
+        // 8b. Update Trip Name & Starting Date
+        mockMvc.perform(put("/api/trips/" + tripId)
+                        .cookie(cookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Grand Canyon & Beyond\",\"startingDate\":\"2026-10-10\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Grand Canyon & Beyond"))
+                .andExpect(jsonPath("$.startingDate").value("2026-10-10"))
+                .andExpect(jsonPath("$.stops[0].stopDate").value("2026-10-10"))
+                .andExpect(jsonPath("$.endingDate").value("2026-10-13"));
+
         // 9. List User Trips
         mockMvc.perform(get("/api/trips")
                         .cookie(cookie))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].name").value("Grand Canyon Adventure"))
+                .andExpect(jsonPath("$[0].name").value("Grand Canyon & Beyond"))
                 .andExpect(jsonPath("$[0].stopCount").value(1));
     }
 

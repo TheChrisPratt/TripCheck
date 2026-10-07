@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { TripDetail, TripSummary, CreateTripDto } from '../models/trip.model';
+import { TripDetail, TripSummary, CreateTripDto, UpdateTripDto } from '../models/trip.model';
 import { Stop, CreateStopDto } from '../models/stop.model';
 import { Task, CreateTaskDto, TaskStatus } from '../models/task.model';
 
@@ -24,6 +24,10 @@ export class TripService {
 
   createTrip(dto: CreateTripDto): Observable<TripDetail> {
     return this.http.post<TripDetail>(this.baseUrl, dto);
+  }
+
+  updateTrip(id: number, dto: UpdateTripDto): Observable<TripDetail> {
+    return this.http.put<TripDetail>(`${this.baseUrl}/${id}`, dto);
   }
 
   deleteTrip(id: number): Observable<void> {

@@ -3,6 +3,7 @@ package com.anodyzed.tripcheck.services;
 import com.anodyzed.tripcheck.dto.CreateTripRequest;
 import com.anodyzed.tripcheck.dto.TripDetailResponse;
 import com.anodyzed.tripcheck.dto.TripSummaryResponse;
+import com.anodyzed.tripcheck.dto.UpdateTripRequest;
 import com.anodyzed.tripcheck.model.Trip;
 import com.anodyzed.tripcheck.repository.TripRepository;
 import com.anodyzed.tripcheck.util.exception.ResourceNotFoundException;
@@ -32,6 +33,15 @@ public class TripService {
     Trip saved = tripRepository.save(trip);
     return TripDetailResponse.fromEntity(saved);
   } //createTrip
+
+  public TripDetailResponse updateTrip (Long id,UpdateTripRequest request,String userId) {
+    Trip trip = getTripEntity(id,userId);
+    trip.setName(request.getName());
+    trip.setStartingDate(request.getStartingDate());
+    trip.recalculateDates();
+    Trip saved = tripRepository.save(trip);
+    return TripDetailResponse.fromEntity(saved);
+  } //updateTrip
 
   @Transactional(readOnly=true)
   public List<TripSummaryResponse> getUserTrips (String userId) {

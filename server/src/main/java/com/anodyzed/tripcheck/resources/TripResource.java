@@ -9,6 +9,7 @@ import com.anodyzed.tripcheck.dto.StopResponse;
 import com.anodyzed.tripcheck.dto.TaskResponse;
 import com.anodyzed.tripcheck.dto.TripDetailResponse;
 import com.anodyzed.tripcheck.dto.TripSummaryResponse;
+import com.anodyzed.tripcheck.dto.UpdateTripRequest;
 import com.anodyzed.tripcheck.services.StopService;
 import com.anodyzed.tripcheck.services.TaskService;
 import com.anodyzed.tripcheck.services.TripService;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -65,6 +67,15 @@ public class TripResource {
     TripDetailResponse trip = tripService.getTripById(id,getUserId(authentication));
     return ResponseEntity.ok(trip);
   } //getTrip
+
+  @PutMapping("/{id}")
+  public ResponseEntity<TripDetailResponse> updateTrip (
+    @PathVariable Long id,
+    @Valid @RequestBody UpdateTripRequest request,
+    Authentication authentication) {
+    TripDetailResponse trip = tripService.updateTrip(id,request,getUserId(authentication));
+    return ResponseEntity.ok(trip);
+  } //updateTrip
 
   @DeleteMapping("/{id}")
   public ResponseEntity<Void> deleteTrip (

@@ -75,6 +75,31 @@ describe('TripService', () => {
     req.flush(mockResponse);
   });
 
+  it('should update trip', () => {
+    const updateDto = { name: 'Updated Coast', startingDate: '2026-08-05' };
+    const mockResponse = {
+      id: 2,
+      name: 'Updated Coast',
+      startingDate: '2026-08-05',
+      endingDate: '2026-08-05',
+      preTripTasks: [],
+      departureDayTasks: [],
+      returnDayTasks: [],
+      stops: []
+    };
+
+    service.updateTrip(2, updateDto).subscribe((res) => {
+      expect(res.id).toBe(2);
+      expect(res.name).toBe('Updated Coast');
+      expect(res.startingDate).toBe('2026-08-05');
+    });
+
+    const req = httpTesting.expectOne('api/trips/2');
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.body).toEqual(updateDto);
+    req.flush(mockResponse);
+  });
+
   it('should update task status', () => {
     const mockTask = {
       id: 5,

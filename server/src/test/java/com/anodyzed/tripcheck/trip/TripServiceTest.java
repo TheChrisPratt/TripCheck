@@ -1,6 +1,14 @@
 package com.anodyzed.tripcheck.trip;
 
-import com.anodyzed.tripcheck.dto.*;
+import com.anodyzed.tripcheck.dto.CreateStopRequest;
+import com.anodyzed.tripcheck.dto.CreateTaskRequest;
+import com.anodyzed.tripcheck.dto.CreateTripRequest;
+import com.anodyzed.tripcheck.dto.StopResponse;
+import com.anodyzed.tripcheck.dto.TaskResponse;
+import com.anodyzed.tripcheck.dto.TripDetailResponse;
+import com.anodyzed.tripcheck.dto.TripSummaryResponse;
+import com.anodyzed.tripcheck.dto.UpdateTaskStatusRequest;
+import com.anodyzed.tripcheck.dto.UpdateTripRequest;
 import com.anodyzed.tripcheck.model.TaskCategory;
 import com.anodyzed.tripcheck.model.TaskStatus;
 import com.anodyzed.tripcheck.repository.StopRepository;
@@ -10,6 +18,10 @@ import com.anodyzed.tripcheck.services.StopService;
 import com.anodyzed.tripcheck.services.TaskService;
 import com.anodyzed.tripcheck.services.TripService;
 import com.anodyzed.tripcheck.util.exception.ResourceNotFoundException;
+
+import java.time.LocalDate;
+import java.util.List;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,10 +29,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -78,7 +89,7 @@ class TripServiceTest {
                 "alice"
         );
 
-        StopResponse stop1 = stopService.addStop(
+        StopResponse ignore = stopService.addStop(
                 created.getId(),
                 CreateStopRequest.builder()
                         .name("Stop A")
@@ -88,7 +99,7 @@ class TripServiceTest {
                 "alice"
         );
 
-        StopResponse stop2 = stopService.addStop(
+        StopResponse ignored = stopService.addStop(
                 created.getId(),
                 CreateStopRequest.builder()
                         .name("Stop B")
@@ -160,8 +171,8 @@ class TripServiceTest {
 
         List<TripSummaryResponse> summaries = tripService.getUserTrips("alice");
         assertEquals(1, summaries.size());
-        assertEquals(4, summaries.get(0).getTotalTaskCount());
-        assertEquals(1, summaries.get(0).getCompletedTaskCount());
+        assertEquals(4, summaries.getFirst().getTotalTaskCount());
+        assertEquals(1, summaries.getFirst().getCompletedTaskCount());
     }
 
     @Test
@@ -174,8 +185,38 @@ class TripServiceTest {
                 "alice"
         );
 
-        assertThrows(ResourceNotFoundException.class, () -> {
-            tripService.getTripById(trip.getId(), "bob");
-        });
+        assertThrows(ResourceNotFoundException.class, () -> tripService.getTripById(trip.getId(), "bob"));
+    }
+
+    @Test
+    void updateTrip_updatesNameAndRecalculatesDates() {
+        TripDetailResponse created = tripService.createTrip(
+                CreateTripRequest.builder()
+                        .name("Initial Trip Name")
+                        .startingDate(LocalDate.of(2026, 6, 1))
+                        .build(),
+                "alice"
+        );
+
+        stopService.addStop(
+                created.getId(),
+                CreateStopRequest.builder()
+                        .name("Stop 1")
+                        .numberOfNights(3)
+                        .build(),
+                "alice"
+        );
+
+        UpdateTripRequest updateReq = UpdateTripRequest.builder()
+                .name("Updated Trip Name")
+                .startingDate(LocalDate.of(2026, 7, 10))
+                .build();
+
+        TripDetailResponse updated = tripService.updateTrip(created.getId(), updateReq, "alice");
+
+        assertEquals("Updated Trip Name", updated.getName());
+        assertEquals(LocalDate.of(2026, 7, 10), updated.getStartingDate());
+        assertEquals(LocalDate.of(2026, 7, 10), updated.getStops().getFirst().getStopDate());
+        assertEquals(LocalDate.of(2026, 7, 13), updated.getEndingDate());
     }
 }

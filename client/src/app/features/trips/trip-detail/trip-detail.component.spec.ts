@@ -40,6 +40,7 @@ describe('TripDetailComponent', () => {
   beforeEach(async () => {
     tripServiceSpy = jasmine.createSpyObj('TripService', [
       'getTrip',
+      'updateTrip',
       'updateTaskStatus',
       'deleteTask',
       'addPreTripTask',
@@ -112,5 +113,28 @@ describe('TripDetailComponent', () => {
     // Toggle return day
     component.toggleReturnDay();
     expect(component.isReturnDayCollapsed()).toBeTrue();
+  });
+
+  it('should update trip name and starting date when submitted from edit modal', () => {
+    const updatedTrip = {
+      ...mockTripDetail,
+      name: 'Yellowstone & Grand Teton',
+      startingDate: '2026-08-10'
+    };
+    tripServiceSpy.updateTrip.and.returnValue(of(updatedTrip));
+
+    component.showEditTripModal = true;
+    component.onEditTripSubmitted({
+      name: 'Yellowstone & Grand Teton',
+      startingDate: '2026-08-10'
+    });
+
+    expect(tripServiceSpy.updateTrip).toHaveBeenCalledWith(1, {
+      name: 'Yellowstone & Grand Teton',
+      startingDate: '2026-08-10'
+    });
+    expect(component.trip()?.name).toBe('Yellowstone & Grand Teton');
+    expect(component.trip()?.startingDate).toBe('2026-08-10');
+    expect(component.showEditTripModal).toBeFalse();
   });
 });

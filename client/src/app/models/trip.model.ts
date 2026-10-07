@@ -27,3 +27,8 @@ export interface CreateTripDto {
   name: string;
   startingDate: string;
 }
+
+export interface UpdateTripDto {
+  name: string;
+  startingDate: string;
+}
