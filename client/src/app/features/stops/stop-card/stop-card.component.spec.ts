@@ -39,4 +39,21 @@ describe('StopCardComponent', () => {
     component.stop.arrivalTasks[0].status = TaskStatus.COMPLETED;
     expect(component.completedArrivalTasksCount).toBe(1);
   });
+
+  it('should toggle collapse state for arrival and departure tasks', () => {
+    expect(component.isArrivalCollapsed()).toBeFalse();
+    expect(component.isDepartureCollapsed()).toBeFalse();
+
+    component.toggleArrival();
+    expect(component.isArrivalCollapsed()).toBeTrue();
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelectorAll('.tasks-section')[0].classList).toContain('is-collapsed');
+
+    component.toggleArrival();
+    expect(component.isArrivalCollapsed()).toBeFalse();
+
+    component.toggleDeparture();
+    expect(component.isDepartureCollapsed()).toBeTrue();
+  });
 });

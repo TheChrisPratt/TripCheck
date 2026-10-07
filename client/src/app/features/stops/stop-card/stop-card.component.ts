@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Stop } from '../../../models/stop.model';
 import { Task, TaskStatus } from '../../../models/task.model';
@@ -64,41 +64,63 @@ import { TaskModalComponent } from '../../tasks/task-modal/task-modal.component'
 
       <div class="stop-tasks-container">
         <!-- Arrival Tasks -->
-        <div class="tasks-section">
+        <div class="tasks-section" [class.is-collapsed]="isArrivalCollapsed()">
           <div class="section-header">
-            <h4>Arrival Tasks ({{ completedArrivalTasksCount }}/{{ stop.arrivalTasks.length }})</h4>
+            <button
+              type="button"
+              class="task-toggle-btn"
+              (click)="toggleArrival()"
+              [attr.aria-expanded]="!isArrivalCollapsed()"
+              aria-label="Toggle Arrival Tasks"
+            >
+              <span class="collapse-icon">{{ isArrivalCollapsed() ? '▶' : '▼' }}</span>
+              <h4>Arrival Tasks ({{ completedArrivalTasksCount }}/{{ stop.arrivalTasks.length }})</h4>
+            </button>
             <button type="button" class="btn-add-task" (click)="showArrivalModal = true">+ Add Task</button>
           </div>
-          <div class="tasks-list">
-            @for (task of stop.arrivalTasks; track task.id) {
-              <app-task-item
-                [task]="task"
-                (statusChange)="onTaskStatusChange($event)"
-                (deleteTask)="onTaskDelete($event)"
-              />
-            } @empty {
-              <div class="empty-tasks">No arrival tasks added.</div>
-            }
-          </div>
+          @if (!isArrivalCollapsed()) {
+            <div class="tasks-list">
+              @for (task of stop.arrivalTasks; track task.id) {
+                <app-task-item
+                  [task]="task"
+                  (statusChange)="onTaskStatusChange($event)"
+                  (deleteTask)="onTaskDelete($event)"
+                />
+              } @empty {
+                <div class="empty-tasks">No arrival tasks added.</div>
+              }
+            </div>
+          }
         </div>
 
         <!-- Departure Tasks -->
-        <div class="tasks-section">
+        <div class="tasks-section" [class.is-collapsed]="isDepartureCollapsed()">
           <div class="section-header">
-            <h4>Departure Tasks ({{ completedDepartureTasksCount }}/{{ stop.departureTasks.length }})</h4>
+            <button
+              type="button"
+              class="task-toggle-btn"
+              (click)="toggleDeparture()"
+              [attr.aria-expanded]="!isDepartureCollapsed()"
+              aria-label="Toggle Departure Tasks"
+            >
+              <span class="collapse-icon">{{ isDepartureCollapsed() ? '▶' : '▼' }}</span>
+              <h4>Departure Tasks ({{ completedDepartureTasksCount }}/{{ stop.departureTasks.length }})</h4>
+            </button>
             <button type="button" class="btn-add-task" (click)="showDepartureModal = true">+ Add Task</button>
           </div>
-          <div class="tasks-list">
-            @for (task of stop.departureTasks; track task.id) {
-              <app-task-item
-                [task]="task"
-                (statusChange)="onTaskStatusChange($event)"
-                (deleteTask)="onTaskDelete($event)"
-              />
-            } @empty {
-              <div class="empty-tasks">No departure tasks added.</div>
-            }
-          </div>
+          @if (!isDepartureCollapsed()) {
+            <div class="tasks-list">
+              @for (task of stop.departureTasks; track task.id) {
+                <app-task-item
+                  [task]="task"
+                  (statusChange)="onTaskStatusChange($event)"
+                  (deleteTask)="onTaskDelete($event)"
+                />
+              } @empty {
+                <div class="empty-tasks">No departure tasks added.</div>
+              }
+            </div>
+          }
         </div>
       </div>
 
@@ -240,17 +262,49 @@ import { TaskModalComponent } from '../../tasks/task-modal/task-modal.component'
       padding: 14px;
       border: 1px solid #f1f5f9;
     }
+    .tasks-section.is-collapsed {
+      padding: 10px 14px;
+    }
     .section-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
       margin-bottom: 10px;
     }
-    .section-header h4 {
+    .tasks-section.is-collapsed .section-header {
+      margin-bottom: 0;
+    }
+    .task-toggle-btn {
+      background: none;
+      border: none;
+      padding: 2px 4px;
+      margin-left: -4px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font: inherit;
+      text-align: left;
+      transition: background-color 0.15s ease;
+    }
+    .task-toggle-btn:hover {
+      background-color: #e2e8f0;
+    }
+    .task-toggle-btn h4 {
       margin: 0;
       font-size: 0.95rem;
       font-weight: 600;
       color: #334155;
+    }
+    .collapse-icon {
+      font-size: 0.75rem;
+      color: #64748b;
+      width: 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
     }
     .btn-add-task {
       background: #ffffff;
@@ -284,6 +338,17 @@ export class StopCardComponent {
 
   showArrivalModal = false;
   showDepartureModal = false;
+
+  isArrivalCollapsed = signal<boolean>(false);
+  isDepartureCollapsed = signal<boolean>(false);
+
+  toggleArrival(): void {
+    this.isArrivalCollapsed.update((v) => !v);
+  }
+
+  toggleDeparture(): void {
+    this.isDepartureCollapsed.update((v) => !v);
+  }
 
   get completedArrivalTasksCount(): number {
     return this.stop.arrivalTasks?.filter((t) => t.status === TaskStatus.COMPLETED).length || 0;

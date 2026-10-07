@@ -59,49 +59,67 @@ import { StopModalComponent } from '../../stops/stop-modal/stop-modal.component'
           </div>
 
           <!-- Section 1: Pre-Trip Checklist -->
-          <div class="checklist-card">
+          <div class="checklist-card" [class.is-collapsed]="isPreTripCollapsed()">
             <div class="section-title-bar">
-              <div class="title-with-badge">
+              <button
+                type="button"
+                class="title-toggle-btn"
+                (click)="togglePreTrip()"
+                [attr.aria-expanded]="!isPreTripCollapsed()"
+                aria-label="Toggle Pre-Trip Checklist"
+              >
+                <span class="collapse-icon">{{ isPreTripCollapsed() ? '▶' : '▼' }}</span>
                 <h3>📋 Pre-Trip Checklist</h3>
                 <span class="badge">{{ getCompletedCount(trip()!.preTripTasks) }}/{{ trip()!.preTripTasks.length }}</span>
-              </div>
+              </button>
               <button type="button" class="btn-sm" (click)="showPreTripModal = true">+ Add Task</button>
             </div>
-            <p class="section-subtitle">Items to pack, reservations to confirm, and tasks to complete before departing.</p>
-            <div class="task-list">
-              @for (task of trip()!.preTripTasks; track task.id) {
-                <app-task-item
-                  [task]="task"
-                  (statusChange)="onTaskStatusChange($event)"
-                  (deleteTask)="onTaskDelete($event)"
-                />
-              } @empty {
-                <div class="empty-hint">No pre-trip tasks added yet.</div>
-              }
-            </div>
+            @if (!isPreTripCollapsed()) {
+              <p class="section-subtitle">Items to pack, reservations to confirm, and tasks to complete before departing.</p>
+              <div class="task-list">
+                @for (task of trip()!.preTripTasks; track task.id) {
+                  <app-task-item
+                    [task]="task"
+                    (statusChange)="onTaskStatusChange($event)"
+                    (deleteTask)="onTaskDelete($event)"
+                  />
+                } @empty {
+                  <div class="empty-hint">No pre-trip tasks added yet.</div>
+                }
+              </div>
+            }
           </div>
 
           <!-- Section 2: Day of Departure Checklist -->
-          <div class="checklist-card">
+          <div class="checklist-card" [class.is-collapsed]="isDepartureDayCollapsed()">
             <div class="section-title-bar">
-              <div class="title-with-badge">
+              <button
+                type="button"
+                class="title-toggle-btn"
+                (click)="toggleDepartureDay()"
+                [attr.aria-expanded]="!isDepartureDayCollapsed()"
+                aria-label="Toggle Day of Departure Checklist"
+              >
+                <span class="collapse-icon">{{ isDepartureDayCollapsed() ? '▶' : '▼' }}</span>
                 <h3>🚗 Day of Departure Checklist</h3>
                 <span class="badge">{{ getCompletedCount(trip()!.departureDayTasks) }}/{{ trip()!.departureDayTasks.length }}</span>
-              </div>
+              </button>
               <button type="button" class="btn-sm" (click)="showDepartureDayModal = true">+ Add Task</button>
             </div>
-            <p class="section-subtitle">Last-minute checks before walking out the door (lock doors, set thermostats, load vehicle).</p>
-            <div class="task-list">
-              @for (task of trip()!.departureDayTasks; track task.id) {
-                <app-task-item
-                  [task]="task"
-                  (statusChange)="onTaskStatusChange($event)"
-                  (deleteTask)="onTaskDelete($event)"
-                />
-              } @empty {
-                <div class="empty-hint">No departure day tasks added yet.</div>
-              }
-            </div>
+            @if (!isDepartureDayCollapsed()) {
+              <p class="section-subtitle">Last-minute checks before walking out the door (lock doors, set thermostats, load vehicle).</p>
+              <div class="task-list">
+                @for (task of trip()!.departureDayTasks; track task.id) {
+                  <app-task-item
+                    [task]="task"
+                    (statusChange)="onTaskStatusChange($event)"
+                    (deleteTask)="onTaskDelete($event)"
+                  />
+                } @empty {
+                  <div class="empty-hint">No departure day tasks added yet.</div>
+                }
+              </div>
+            }
           </div>
 
           <!-- Section 3: Itinerary Stops Timeline -->
@@ -138,26 +156,35 @@ import { StopModalComponent } from '../../stops/stop-modal/stop-modal.component'
           </div>
 
           <!-- Section 4: Day of Return Checklist -->
-          <div class="checklist-card">
+          <div class="checklist-card" [class.is-collapsed]="isReturnDayCollapsed()">
             <div class="section-title-bar">
-              <div class="title-with-badge">
+              <button
+                type="button"
+                class="title-toggle-btn"
+                (click)="toggleReturnDay()"
+                [attr.aria-expanded]="!isReturnDayCollapsed()"
+                aria-label="Toggle Day of Return Checklist"
+              >
+                <span class="collapse-icon">{{ isReturnDayCollapsed() ? '▶' : '▼' }}</span>
                 <h3>🏡 Day of Return Checklist</h3>
                 <span class="badge">{{ getCompletedCount(trip()!.returnDayTasks) }}/{{ trip()!.returnDayTasks.length }}</span>
-              </div>
+              </button>
               <button type="button" class="btn-sm" (click)="showReturnDayModal = true">+ Add Task</button>
             </div>
-            <p class="section-subtitle">Tasks when arriving back home (unpack gear, check mail, review expenses).</p>
-            <div class="task-list">
-              @for (task of trip()!.returnDayTasks; track task.id) {
-                <app-task-item
-                  [task]="task"
-                  (statusChange)="onTaskStatusChange($event)"
-                  (deleteTask)="onTaskDelete($event)"
-                />
-              } @empty {
-                <div class="empty-hint">No return day tasks added yet.</div>
-              }
-            </div>
+            @if (!isReturnDayCollapsed()) {
+              <p class="section-subtitle">Tasks when arriving back home (unpack gear, check mail, review expenses).</p>
+              <div class="task-list">
+                @for (task of trip()!.returnDayTasks; track task.id) {
+                  <app-task-item
+                    [task]="task"
+                    (statusChange)="onTaskStatusChange($event)"
+                    (deleteTask)="onTaskDelete($event)"
+                  />
+                } @empty {
+                  <div class="empty-hint">No return day tasks added yet.</div>
+                }
+              </div>
+            }
           </div>
         </div>
       }
@@ -254,6 +281,10 @@ import { StopModalComponent } from '../../stops/stop-modal/stop-modal.component'
       padding: 24px;
       margin-bottom: 28px;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+      transition: padding 0.2s ease;
+    }
+    .checklist-card.is-collapsed {
+      padding: 18px 24px;
     }
     .section-title-bar {
       display: flex;
@@ -261,16 +292,37 @@ import { StopModalComponent } from '../../stops/stop-modal/stop-modal.component'
       align-items: center;
       margin-bottom: 4px;
     }
-    .title-with-badge {
+    .title-toggle-btn {
+      background: none;
+      border: none;
+      padding: 4px 6px;
+      margin-left: -6px;
+      border-radius: 8px;
+      cursor: pointer;
       display: flex;
       align-items: center;
       gap: 10px;
+      font: inherit;
+      text-align: left;
+      transition: background-color 0.15s ease;
     }
-    .title-with-badge h3 {
+    .title-toggle-btn:hover {
+      background-color: #f1f5f9;
+    }
+    .title-toggle-btn h3 {
       margin: 0;
       font-size: 1.2rem;
       font-weight: 600;
       color: #0f172a;
+    }
+    .collapse-icon {
+      font-size: 0.8rem;
+      color: #64748b;
+      width: 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
     }
     .badge {
       background: #eff6ff;
@@ -378,6 +430,22 @@ export class TripDetailComponent implements OnInit {
   showDepartureDayModal = false;
   showReturnDayModal = false;
   showAddStopModal = false;
+
+  isPreTripCollapsed = signal<boolean>(false);
+  isDepartureDayCollapsed = signal<boolean>(false);
+  isReturnDayCollapsed = signal<boolean>(false);
+
+  togglePreTrip(): void {
+    this.isPreTripCollapsed.update((v) => !v);
+  }
+
+  toggleDepartureDay(): void {
+    this.isDepartureDayCollapsed.update((v) => !v);
+  }
+
+  toggleReturnDay(): void {
+    this.isReturnDayCollapsed.update((v) => !v);
+  }
 
   ngOnInit(): void {
     this.route.paramMap.subscribe((params) => {

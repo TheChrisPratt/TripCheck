@@ -87,4 +87,30 @@ describe('TripDetailComponent', () => {
     const depTasks = component.trip()!.departureDayTasks;
     expect(component.getCompletedCount(depTasks)).toBe(0);
   });
+
+  it('should toggle checklist collapse state for pre-trip, departure day, and return day', () => {
+    // Initially all open
+    expect(component.isPreTripCollapsed()).toBeFalse();
+    expect(component.isDepartureDayCollapsed()).toBeFalse();
+    expect(component.isReturnDayCollapsed()).toBeFalse();
+
+    // Toggle pre-trip
+    component.togglePreTrip();
+    expect(component.isPreTripCollapsed()).toBeTrue();
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelectorAll('.checklist-card')[0].classList).toContain('is-collapsed');
+
+    // Toggle again to expand
+    component.togglePreTrip();
+    expect(component.isPreTripCollapsed()).toBeFalse();
+
+    // Toggle departure day
+    component.toggleDepartureDay();
+    expect(component.isDepartureDayCollapsed()).toBeTrue();
+
+    // Toggle return day
+    component.toggleReturnDay();
+    expect(component.isReturnDayCollapsed()).toBeTrue();
+  });
 });
