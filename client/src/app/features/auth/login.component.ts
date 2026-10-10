@@ -1,7 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 
 @Component({
@@ -52,6 +51,7 @@ import { AuthService } from '../../core/auth/auth.service';
               [(ngModel)]="username"
               placeholder="e.g. explorer@tripcheck.com"
               required
+              autofocus
               autocomplete="username webauthn"
               class="form-input"
             />
@@ -222,7 +222,6 @@ import { AuthService } from '../../core/auth/auth.service';
 })
 export class LoginComponent {
   authService = inject(AuthService);
-  private router = inject(Router);
 
   isLoginMode = signal<boolean>(true);
   errorMessage = signal<string | null>(null);

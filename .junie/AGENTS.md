@@ -34,6 +34,7 @@
 
 - Server: Use standard Spring Boot package-by-layer layout.
 - Client: Adhere to official Angular style guide guidelines (Strict mode enabled).
+- UX: All dialogs should focus on the first input field.
 - Database: Provide a `docker-compose.yml` for spinning up a local MySQL instance during development.
 - All: Maintain consistent code formatting within each file.
 - Documentation: Keep the documentation in README.md up to date.

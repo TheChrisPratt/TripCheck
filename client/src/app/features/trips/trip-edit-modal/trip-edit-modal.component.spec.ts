@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { TripEditModalComponent } from './trip-edit-modal.component';
 
 describe('TripEditModalComponent', () => {
@@ -17,10 +18,13 @@ describe('TripEditModalComponent', () => {
     fixture.detectChanges();
   });
 
-  it('should initialize with initial values', () => {
+  it('should initialize with initial values and autofocus first input field', () => {
     expect(component).toBeTruthy();
     expect(component.tripData.name).toBe('California Dreamin');
     expect(component.tripData.startingDate).toBe('2026-09-15');
+    const firstInput = fixture.debugElement.query(By.css('input#editTripName'));
+    expect(firstInput).toBeTruthy();
+    expect(firstInput.nativeElement.hasAttribute('autofocus')).toBeTrue();
   });
 
   it('should emit tripSubmitted with trimmed name when valid', () => {

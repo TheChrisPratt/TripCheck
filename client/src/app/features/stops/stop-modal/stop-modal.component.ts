@@ -25,6 +25,7 @@ import { CreateStopDto } from '../../../models/stop.model';
                 [(ngModel)]="stopData.name"
                 placeholder="e.g. Grand Canyon South Rim"
                 required
+                autofocus
                 class="form-input"
               />
             </div>
