@@ -50,6 +50,10 @@ public class Task {
   @Column(nullable=false, length=30)
   private TaskCategory category;
 
+  @Column(name="order_index")
+  @Builder.Default
+  private int orderIndex = 0;
+
   @ManyToOne(fetch=FetchType.LAZY)
   @JoinColumn(name="trip_id")
   @JsonIgnore

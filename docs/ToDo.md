@@ -1,7 +1,7 @@
 # ToDo List
 
 - [x] All Dialogs should focus on the first input field
-- [ ] Add Rearrange Tasks Functionality
+- [x] Add Rearrange Tasks Functionality
 - [ ] Add Clone Stop Functionality
 - [ ] Add Clone Trip Functionality
 - [ ] Add Rearrange Stops Functionality

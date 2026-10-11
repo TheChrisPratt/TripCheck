@@ -1,14 +1,23 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { of } from 'rxjs';
 import { StopCardComponent } from './stop-card.component';
+import { TripService } from '../../../services/trip.service';
 import { TaskCategory, TaskStatus } from '../../../models/task.model';
 
 describe('StopCardComponent', () => {
   let component: StopCardComponent;
   let fixture: ComponentFixture<StopCardComponent>;
+  let tripServiceSpy: jasmine.SpyObj<TripService>;
 
   beforeEach(async () => {
+    tripServiceSpy = jasmine.createSpyObj('TripService', ['reorderTasks']);
+    tripServiceSpy.reorderTasks.and.returnValue(of(undefined as unknown as void));
+
     await TestBed.configureTestingModule({
-      imports: [StopCardComponent]
+      imports: [StopCardComponent],
+      providers: [
+        { provide: TripService, useValue: tripServiceSpy }
+      ]
     }).compileComponents();
 
     fixture = TestBed.createComponent(StopCardComponent);
@@ -20,7 +29,8 @@ describe('StopCardComponent', () => {
       numberOfNights: 2,
       orderIndex: 0,
       arrivalTasks: [
-        { id: 10, description: 'Check into campsite', status: TaskStatus.INCOMPLETE, category: TaskCategory.ARRIVAL }
+        { id: 10, description: 'Check into campsite', status: TaskStatus.INCOMPLETE, category: TaskCategory.ARRIVAL, orderIndex: 0 },
+        { id: 11, description: 'Set up camp stove', status: TaskStatus.INCOMPLETE, category: TaskCategory.ARRIVAL, orderIndex: 1 }
       ],
       departureTasks: []
     };
@@ -55,5 +65,18 @@ describe('StopCardComponent', () => {
 
     component.toggleDeparture();
     expect(component.isDepartureCollapsed()).toBeTrue();
+  });
+
+  it('should reorder arrival tasks via drag and drop and call tripService.reorderTasks', () => {
+    const dragStartEvent = new DragEvent('dragstart');
+    component.onTaskDragStart(dragStartEvent, 'arrival', 0);
+    expect(component.draggedState).toEqual({ listType: 'arrival', index: 0 });
+
+    const dropEvent = new DragEvent('drop');
+    component.onTaskDrop(dropEvent, 'arrival', 1);
+
+    expect(component.stop.arrivalTasks[0].id).toBe(11);
+    expect(component.stop.arrivalTasks[1].id).toBe(10);
+    expect(tripServiceSpy.reorderTasks).toHaveBeenCalledWith([11, 10]);
   });
 });

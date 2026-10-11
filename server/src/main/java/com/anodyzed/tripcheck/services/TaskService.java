@@ -29,14 +29,16 @@ public class TaskService {
     this.taskRepository = taskRepository;
     this.tripService = tripService;
     this.stopService = stopService;
-  }
+  } //TaskService
 
   public TaskResponse addPreTripTask (Long tripId,CreateTaskRequest request,String userId) {
     Trip trip = tripService.getTripEntity(tripId,userId);
+    int nextOrder = trip.getPreTripTasks().size();
     Task task = Task.builder()
       .description(request.getDescription())
       .category(TaskCategory.PRE_TRIP)
       .status(TaskStatus.INCOMPLETE)
+      .orderIndex(nextOrder)
       .trip(trip)
       .build();
     Task saved = taskRepository.save(task);
@@ -44,14 +46,16 @@ public class TaskService {
       trip.getTasks().add(saved);
     }
     return TaskResponse.fromEntity(saved);
-  }
+  } //addPreTripTask
 
   public TaskResponse addDepartureDayTask (Long tripId,CreateTaskRequest request,String userId) {
     Trip trip = tripService.getTripEntity(tripId,userId);
+    int nextOrder = trip.getDepartureDayTasks().size();
     Task task = Task.builder()
       .description(request.getDescription())
       .category(TaskCategory.DEPARTURE_DAY)
       .status(TaskStatus.INCOMPLETE)
+      .orderIndex(nextOrder)
       .trip(trip)
       .build();
     Task saved = taskRepository.save(task);
@@ -59,14 +63,16 @@ public class TaskService {
       trip.getTasks().add(saved);
     }
     return TaskResponse.fromEntity(saved);
-  }
+  } //addDepartureDayTask
 
   public TaskResponse addReturnDayTask (Long tripId,CreateTaskRequest request,String userId) {
     Trip trip = tripService.getTripEntity(tripId,userId);
+    int nextOrder = trip.getReturnDayTasks().size();
     Task task = Task.builder()
       .description(request.getDescription())
       .category(TaskCategory.RETURN_DAY)
       .status(TaskStatus.INCOMPLETE)
+      .orderIndex(nextOrder)
       .trip(trip)
       .build();
     Task saved = taskRepository.save(task);
@@ -74,14 +80,16 @@ public class TaskService {
       trip.getTasks().add(saved);
     }
     return TaskResponse.fromEntity(saved);
-  }
+  } //addReturnDayTask
 
   public TaskResponse addArrivalTask (Long stopId,CreateTaskRequest request,String userId) {
     Stop stop = stopService.getStopEntity(stopId,userId);
+    int nextOrder = stop.getArrivalTasks().size();
     Task task = Task.builder()
       .description(request.getDescription())
       .category(TaskCategory.ARRIVAL)
       .status(TaskStatus.INCOMPLETE)
+      .orderIndex(nextOrder)
       .stop(stop)
       .build();
     Task saved = taskRepository.save(task);
@@ -89,14 +97,16 @@ public class TaskService {
       stop.getTasks().add(saved);
     }
     return TaskResponse.fromEntity(saved);
-  }
+  } //addArrivalTask
 
   public TaskResponse addDepartureTask (Long stopId,CreateTaskRequest request,String userId) {
     Stop stop = stopService.getStopEntity(stopId,userId);
+    int nextOrder = stop.getDepartureTasks().size();
     Task task = Task.builder()
       .description(request.getDescription())
       .category(TaskCategory.DEPARTURE)
       .status(TaskStatus.INCOMPLETE)
+      .orderIndex(nextOrder)
       .stop(stop)
       .build();
     Task saved = taskRepository.save(task);
@@ -104,7 +114,7 @@ public class TaskService {
       stop.getTasks().add(saved);
     }
     return TaskResponse.fromEntity(saved);
-  }
+  } //addDepartureTask
 
   public TaskResponse updateTaskStatus (Long taskId,UpdateTaskStatusRequest request,String userId) {
     Task task = taskRepository.findById(taskId)
@@ -119,7 +129,7 @@ public class TaskService {
     task.setStatus(request.getStatus());
     Task updated = taskRepository.save(task);
     return TaskResponse.fromEntity(updated);
-  }
+  } //updateTaskStatus
 
   public void deleteTask (Long taskId,String userId) {
     Task task = taskRepository.findById(taskId)
@@ -141,5 +151,25 @@ public class TaskService {
     }
 
     taskRepository.delete(task);
-  }
-}
+  } //deleteTask
+
+  public void reorderTasks (java.util.List<Long> taskIds,String userId) {
+    if(taskIds != null && !taskIds.isEmpty()) {
+      for(int i = 0;i < taskIds.size();i++) {
+        Long taskId = taskIds.get(i);
+        Task task = taskRepository.findById(taskId)
+          .orElseThrow(() -> new ResourceNotFoundException("Task not found with id: " + taskId));
+
+        if(task.getTrip() != null) {
+          tripService.getTripEntity(task.getTrip().getId(),userId);
+        } else if(task.getStop() != null && task.getStop().getTrip() != null) {
+          tripService.getTripEntity(task.getStop().getTrip().getId(),userId);
+        }
+
+        task.setOrderIndex(i);
+        taskRepository.save(task);
+      }
+    }
+  } //reorderTasks
+
+} //*TaskService

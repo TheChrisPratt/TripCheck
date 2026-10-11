@@ -2,7 +2,6 @@ import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TripService } from './trip.service';
-import { TaskCategory, TaskStatus } from '../models/task.model';
 
 describe('TripService', () => {
   let service: TripService;
@@ -100,21 +99,12 @@ describe('TripService', () => {
     req.flush(mockResponse);
   });
 
-  it('should update task status', () => {
-    const mockTask = {
-      id: 5,
-      description: 'Check oil',
-      status: TaskStatus.COMPLETED,
-      category: TaskCategory.PRE_TRIP
-    };
+  it('should reorder tasks', () => {
+    service.reorderTasks([10, 20, 30]).subscribe();
 
-    service.updateTaskStatus(5, TaskStatus.COMPLETED).subscribe((res) => {
-      expect(res.status).toBe(TaskStatus.COMPLETED);
-    });
-
-    const req = httpTesting.expectOne('api/tasks/5/status');
-    expect(req.request.method).toBe('PATCH');
-    expect(req.request.body).toEqual({ status: TaskStatus.COMPLETED });
-    req.flush(mockTask);
+    const req = httpTesting.expectOne('api/tasks/reorder');
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.body).toEqual({ taskIds: [10, 20, 30] });
+    req.flush(null);
   });
 });

@@ -84,11 +84,19 @@ import { TripEditModalComponent } from '../trip-edit-modal/trip-edit-modal.compo
             @if (!isPreTripCollapsed()) {
               <p class="section-subtitle">Items to pack, reservations to confirm, and tasks to complete before departing.</p>
               <div class="task-list">
-                @for (task of trip()!.preTripTasks; track task.id) {
+                @for (task of trip()!.preTripTasks; track task.id; let i = $index) {
                   <app-task-item
                     [task]="task"
+                    [index]="i"
+                    [isDragging]="draggedState?.listType === 'preTrip' && draggedState?.index === i"
+                    [isDragOver]="dragOverState?.listType === 'preTrip' && dragOverState?.index === i"
                     (statusChange)="onTaskStatusChange($event)"
                     (deleteTask)="onTaskDelete($event)"
+                    (itemDragStart)="onTaskDragStart($event.event, 'preTrip', i)"
+                    (itemDragOver)="onTaskDragOver($event.event, 'preTrip', i)"
+                    (itemDragLeave)="onTaskDragLeave($event.event, 'preTrip', i)"
+                    (itemDrop)="onTaskDrop($event.event, 'preTrip', i)"
+                    (itemDragEnd)="onTaskDragEnd()"
                   />
                 } @empty {
                   <div class="empty-hint">No pre-trip tasks added yet.</div>
@@ -116,11 +124,19 @@ import { TripEditModalComponent } from '../trip-edit-modal/trip-edit-modal.compo
             @if (!isDepartureDayCollapsed()) {
               <p class="section-subtitle">Last-minute checks before walking out the door (lock doors, set thermostats, load vehicle).</p>
               <div class="task-list">
-                @for (task of trip()!.departureDayTasks; track task.id) {
+                @for (task of trip()!.departureDayTasks; track task.id; let i = $index) {
                   <app-task-item
                     [task]="task"
+                    [index]="i"
+                    [isDragging]="draggedState?.listType === 'departureDay' && draggedState?.index === i"
+                    [isDragOver]="dragOverState?.listType === 'departureDay' && dragOverState?.index === i"
                     (statusChange)="onTaskStatusChange($event)"
                     (deleteTask)="onTaskDelete($event)"
+                    (itemDragStart)="onTaskDragStart($event.event, 'departureDay', i)"
+                    (itemDragOver)="onTaskDragOver($event.event, 'departureDay', i)"
+                    (itemDragLeave)="onTaskDragLeave($event.event, 'departureDay', i)"
+                    (itemDrop)="onTaskDrop($event.event, 'departureDay', i)"
+                    (itemDragEnd)="onTaskDragEnd()"
                   />
                 } @empty {
                   <div class="empty-hint">No departure day tasks added yet.</div>
@@ -181,11 +197,19 @@ import { TripEditModalComponent } from '../trip-edit-modal/trip-edit-modal.compo
             @if (!isReturnDayCollapsed()) {
               <p class="section-subtitle">Tasks when arriving back home (unpack gear, check mail, review expenses).</p>
               <div class="task-list">
-                @for (task of trip()!.returnDayTasks; track task.id) {
+                @for (task of trip()!.returnDayTasks; track task.id; let i = $index) {
                   <app-task-item
                     [task]="task"
+                    [index]="i"
+                    [isDragging]="draggedState?.listType === 'returnDay' && draggedState?.index === i"
+                    [isDragOver]="dragOverState?.listType === 'returnDay' && dragOverState?.index === i"
                     (statusChange)="onTaskStatusChange($event)"
                     (deleteTask)="onTaskDelete($event)"
+                    (itemDragStart)="onTaskDragStart($event.event, 'returnDay', i)"
+                    (itemDragOver)="onTaskDragOver($event.event, 'returnDay', i)"
+                    (itemDragLeave)="onTaskDragLeave($event.event, 'returnDay', i)"
+                    (itemDrop)="onTaskDrop($event.event, 'returnDay', i)"
+                    (itemDragEnd)="onTaskDragEnd()"
                   />
                 } @empty {
                   <div class="empty-hint">No return day tasks added yet.</div>
@@ -454,6 +478,9 @@ export class TripDetailComponent implements OnInit {
   showAddStopModal = false;
   showEditTripModal = false;
 
+  draggedState: { listType: string; index: number } | null = null;
+  dragOverState: { listType: string; index: number } | null = null;
+
   isPreTripCollapsed = signal<boolean>(false);
   isDepartureDayCollapsed = signal<boolean>(false);
   isReturnDayCollapsed = signal<boolean>(false);
@@ -513,6 +540,85 @@ export class TripDetailComponent implements OnInit {
         event.task.status = previousStatus;
       }
     });
+  }
+
+  onTaskDragStart(event: DragEvent, listType: string, index: number): void {
+    this.draggedState = { listType, index };
+    this.dragOverState = null;
+  }
+
+  onTaskDragOver(event: DragEvent, listType: string, index: number): void {
+    if (this.draggedState && this.draggedState.listType === listType) {
+      event.preventDefault();
+      if (event.dataTransfer) {
+        event.dataTransfer.dropEffect = 'move';
+      }
+      this.dragOverState = { listType, index };
+    }
+  }
+
+  onTaskDragLeave(event: DragEvent, listType: string, index: number): void {
+    if (this.dragOverState && this.dragOverState.listType === listType && this.dragOverState.index === index) {
+      this.dragOverState = null;
+    }
+  }
+
+  onTaskDrop(event: DragEvent, listType: string, targetIndex: number): void {
+    event.preventDefault();
+    if (!this.draggedState || this.draggedState.listType !== listType) {
+      this.draggedState = null;
+      this.dragOverState = null;
+      return;
+    }
+
+    const sourceIndex = this.draggedState.index;
+    this.draggedState = null;
+    this.dragOverState = null;
+
+    if (sourceIndex === targetIndex || !this.trip()) {
+      return;
+    }
+
+    let tasks: Task[] = [];
+    if (listType === 'preTrip') {
+      tasks = [...this.trip()!.preTripTasks];
+    } else if (listType === 'departureDay') {
+      tasks = [...this.trip()!.departureDayTasks];
+    } else if (listType === 'returnDay') {
+      tasks = [...this.trip()!.returnDayTasks];
+    }
+
+    if (sourceIndex < 0 || sourceIndex >= tasks.length || targetIndex < 0 || targetIndex >= tasks.length) {
+      return;
+    }
+
+    const [movedTask] = tasks.splice(sourceIndex, 1);
+    tasks.splice(targetIndex, 0, movedTask);
+    tasks.forEach((t, i) => t.orderIndex = i);
+
+    const updatedTrip = { ...this.trip()! };
+    if (listType === 'preTrip') {
+      updatedTrip.preTripTasks = tasks;
+    } else if (listType === 'departureDay') {
+      updatedTrip.departureDayTasks = tasks;
+    } else if (listType === 'returnDay') {
+      updatedTrip.returnDayTasks = tasks;
+    }
+    this.trip.set(updatedTrip);
+
+    const taskIds = tasks.map((t) => t.id);
+    this.tripService.reorderTasks(taskIds).subscribe({
+      error: () => {
+        if (this.trip()) {
+          this.loadTrip(this.trip()!.id);
+        }
+      }
+    });
+  }
+
+  onTaskDragEnd(): void {
+    this.draggedState = null;
+    this.dragOverState = null;
   }
 
   onTaskDelete(task: Task): void {

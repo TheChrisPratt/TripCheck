@@ -53,7 +53,7 @@ TripCheck is a decoupled full-stack trip planning and checklist application.
    - `com.anodyzed.tripcheck.resources`
    - `com.anodyzed.tripcheck.util`
 2. **Entities:**
-   - `Task`: ID, description (`String`), status (`TaskStatus` enum: `INCOMPLETE`, `COMPLETED`), task category/type (`PRE_TRIP`, `DEPARTURE_DAY`, `RETURN_DAY`, `STOP_ARRIVAL`, `STOP_DEPARTURE`), parent references.
+   - `Task`: ID, description (`String`), status (`TaskStatus` enum: `INCOMPLETE`, `COMPLETED`), task category/type (`PRE_TRIP`, `DEPARTURE_DAY`, `RETURN_DAY`, `STOP_ARRIVAL`, `STOP_DEPARTURE`), order index, parent references.
    - `Stop`: ID, name, stopDate (`LocalDate`), location, numberOfNights (`Integer`), webAddress, telephoneNumber, confirmationCode, siteNumber, notes, arrival tasks, departure tasks, trip reference, order index.
    - `Trip`: ID, name, startingDate (`LocalDate`), endingDate (`LocalDate`), pre-trip tasks, day-of-departure tasks, day-of-return tasks, ordered list of stops, owner userId.
 3. **Date Calculation & Domain Logic:**

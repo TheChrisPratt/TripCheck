@@ -52,6 +52,7 @@ public class Trip {
   private String userId;
 
   @OneToMany(mappedBy="trip",cascade=CascadeType.ALL,orphanRemoval=true)
+  @OrderBy("orderIndex ASC")
   @Builder.Default
   private List<Task> tasks = new ArrayList<>();
 
@@ -66,6 +67,7 @@ public class Trip {
     }
     return tasks.stream()
       .filter(t -> t.getCategory() == TaskCategory.PRE_TRIP)
+      .sorted(Comparator.comparing(Task::getOrderIndex))
       .toList();
   } //getPreTripTasks
 
@@ -75,6 +77,7 @@ public class Trip {
     }
     return tasks.stream()
       .filter(t -> t.getCategory() == TaskCategory.DEPARTURE_DAY)
+      .sorted(Comparator.comparing(Task::getOrderIndex))
       .toList();
   } //getDepartureDayTasks
 
@@ -84,6 +87,7 @@ public class Trip {
     }
     return tasks.stream()
       .filter(t -> t.getCategory() == TaskCategory.RETURN_DAY)
+      .sorted(Comparator.comparing(Task::getOrderIndex))
       .toList();
   } //getReturnDayTasks
 
@@ -95,6 +99,7 @@ public class Trip {
       .description(description)
       .category(TaskCategory.PRE_TRIP)
       .status(TaskStatus.INCOMPLETE)
+      .orderIndex(getPreTripTasks().size())
       .trip(this)
       .build();
     tasks.add(task);
@@ -108,6 +113,7 @@ public class Trip {
       .description(description)
       .category(TaskCategory.DEPARTURE_DAY)
       .status(TaskStatus.INCOMPLETE)
+      .orderIndex(getDepartureDayTasks().size())
       .trip(this)
       .build();
     tasks.add(task);
@@ -121,6 +127,7 @@ public class Trip {
       .description(description)
       .category(TaskCategory.RETURN_DAY)
       .status(TaskStatus.INCOMPLETE)
+      .orderIndex(getReturnDayTasks().size())
       .trip(this)
       .build();
     tasks.add(task);

@@ -1,7 +1,8 @@
-import { Component, EventEmitter, Input, Output, signal } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Stop } from '../../../models/stop.model';
 import { Task, TaskStatus } from '../../../models/task.model';
+import { TripService } from '../../../services/trip.service';
 import { TaskItemComponent } from '../../tasks/task-item/task-item.component';
 import { TaskModalComponent } from '../../tasks/task-modal/task-modal.component';
 
@@ -80,11 +81,19 @@ import { TaskModalComponent } from '../../tasks/task-modal/task-modal.component'
           </div>
           @if (!isArrivalCollapsed()) {
             <div class="tasks-list">
-              @for (task of stop.arrivalTasks; track task.id) {
+              @for (task of stop.arrivalTasks; track task.id; let i = $index) {
                 <app-task-item
                   [task]="task"
+                  [index]="i"
+                  [isDragging]="draggedState?.listType === 'arrival' && draggedState?.index === i"
+                  [isDragOver]="dragOverState?.listType === 'arrival' && dragOverState?.index === i"
                   (statusChange)="onTaskStatusChange($event)"
                   (deleteTask)="onTaskDelete($event)"
+                  (itemDragStart)="onTaskDragStart($event.event, 'arrival', i)"
+                  (itemDragOver)="onTaskDragOver($event.event, 'arrival', i)"
+                  (itemDragLeave)="onTaskDragLeave($event.event, 'arrival', i)"
+                  (itemDrop)="onTaskDrop($event.event, 'arrival', i)"
+                  (itemDragEnd)="onTaskDragEnd()"
                 />
               } @empty {
                 <div class="empty-tasks">No arrival tasks added.</div>
@@ -110,11 +119,19 @@ import { TaskModalComponent } from '../../tasks/task-modal/task-modal.component'
           </div>
           @if (!isDepartureCollapsed()) {
             <div class="tasks-list">
-              @for (task of stop.departureTasks; track task.id) {
+              @for (task of stop.departureTasks; track task.id; let i = $index) {
                 <app-task-item
                   [task]="task"
+                  [index]="i"
+                  [isDragging]="draggedState?.listType === 'departure' && draggedState?.index === i"
+                  [isDragOver]="dragOverState?.listType === 'departure' && dragOverState?.index === i"
                   (statusChange)="onTaskStatusChange($event)"
                   (deleteTask)="onTaskDelete($event)"
+                  (itemDragStart)="onTaskDragStart($event.event, 'departure', i)"
+                  (itemDragOver)="onTaskDragOver($event.event, 'departure', i)"
+                  (itemDragLeave)="onTaskDragLeave($event.event, 'departure', i)"
+                  (itemDrop)="onTaskDrop($event.event, 'departure', i)"
+                  (itemDragEnd)="onTaskDragEnd()"
                 />
               } @empty {
                 <div class="empty-tasks">No departure tasks added.</div>
@@ -329,15 +346,21 @@ import { TaskModalComponent } from '../../tasks/task-modal/task-modal.component'
   `]
 })
 export class StopCardComponent {
+  private tripService = inject(TripService);
+
   @Input({ required: true }) stop!: Stop;
   @Output() deleteStop = new EventEmitter<number>();
   @Output() addArrivalTask = new EventEmitter<{ stopId: number; description: string }>();
   @Output() addDepartureTask = new EventEmitter<{ stopId: number; description: string }>();
   @Output() taskStatusChange = new EventEmitter<{ task: Task; newStatus: TaskStatus }>();
   @Output() taskDelete = new EventEmitter<Task>();
+  @Output() taskReorder = new EventEmitter<{ stopId: number; listType: string; tasks: Task[] }>();
 
   showArrivalModal = false;
   showDepartureModal = false;
+
+  draggedState: { listType: string; index: number } | null = null;
+  dragOverState: { listType: string; index: number } | null = null;
 
   isArrivalCollapsed = signal<boolean>(false);
   isDepartureCollapsed = signal<boolean>(false);
@@ -376,6 +399,74 @@ export class StopCardComponent {
 
   onTaskStatusChange(event: { task: Task; newStatus: TaskStatus }): void {
     this.taskStatusChange.emit(event);
+  }
+
+  onTaskDragStart(event: DragEvent, listType: string, index: number): void {
+    this.draggedState = { listType, index };
+    this.dragOverState = null;
+  }
+
+  onTaskDragOver(event: DragEvent, listType: string, index: number): void {
+    if (this.draggedState && this.draggedState.listType === listType) {
+      event.preventDefault();
+      if (event.dataTransfer) {
+        event.dataTransfer.dropEffect = 'move';
+      }
+      this.dragOverState = { listType, index };
+    }
+  }
+
+  onTaskDragLeave(event: DragEvent, listType: string, index: number): void {
+    if (this.dragOverState && this.dragOverState.listType === listType && this.dragOverState.index === index) {
+      this.dragOverState = null;
+    }
+  }
+
+  onTaskDrop(event: DragEvent, listType: string, targetIndex: number): void {
+    event.preventDefault();
+    if (!this.draggedState || this.draggedState.listType !== listType) {
+      this.draggedState = null;
+      this.dragOverState = null;
+      return;
+    }
+
+    const sourceIndex = this.draggedState.index;
+    this.draggedState = null;
+    this.dragOverState = null;
+
+    if (sourceIndex === targetIndex) {
+      return;
+    }
+
+    const tasks = listType === 'arrival' ? [...this.stop.arrivalTasks] : [...this.stop.departureTasks];
+    if (sourceIndex < 0 || sourceIndex >= tasks.length || targetIndex < 0 || targetIndex >= tasks.length) {
+      return;
+    }
+
+    const [movedTask] = tasks.splice(sourceIndex, 1);
+    tasks.splice(targetIndex, 0, movedTask);
+    tasks.forEach((t, i) => t.orderIndex = i);
+
+    if (listType === 'arrival') {
+      this.stop.arrivalTasks = tasks;
+    } else {
+      this.stop.departureTasks = tasks;
+    }
+
+    const taskIds = tasks.map((t) => t.id);
+    this.tripService.reorderTasks(taskIds).subscribe({
+      next: () => {
+        this.taskReorder.emit({ stopId: this.stop.id, listType, tasks });
+      },
+      error: (err) => {
+        console.error('Failed to persist stop task reorder', err);
+      }
+    });
+  }
+
+  onTaskDragEnd(): void {
+    this.draggedState = null;
+    this.dragOverState = null;
   }
 
   onTaskDelete(task: Task): void {

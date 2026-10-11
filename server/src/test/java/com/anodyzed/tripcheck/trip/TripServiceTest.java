@@ -134,6 +134,14 @@ class TripServiceTest {
         );
         assertEquals(TaskStatus.INCOMPLETE, preTrip.getStatus());
         assertEquals(TaskCategory.PRE_TRIP, preTrip.getCategory());
+        assertEquals(0, preTrip.getOrderIndex());
+
+        TaskResponse preTrip2 = taskService.addPreTripTask(
+                trip.getId(),
+                CreateTaskRequest.builder().description("Check passports").build(),
+                "alice"
+        );
+        assertEquals(1, preTrip2.getOrderIndex());
 
         TaskResponse departureDay = taskService.addDepartureDayTask(
                 trip.getId(),
@@ -141,6 +149,7 @@ class TripServiceTest {
                 "alice"
         );
         assertEquals(TaskCategory.DEPARTURE_DAY, departureDay.getCategory());
+        assertEquals(0, departureDay.getOrderIndex());
 
         TaskResponse returnDay = taskService.addReturnDayTask(
                 trip.getId(),
@@ -148,6 +157,7 @@ class TripServiceTest {
                 "alice"
         );
         assertEquals(TaskCategory.RETURN_DAY, returnDay.getCategory());
+        assertEquals(0, returnDay.getOrderIndex());
 
         StopResponse stop = stopService.addStop(
                 trip.getId(),
@@ -161,6 +171,14 @@ class TripServiceTest {
                 "alice"
         );
         assertEquals(TaskCategory.ARRIVAL, arrivalTask.getCategory());
+        assertEquals(0, arrivalTask.getOrderIndex());
+
+        TaskResponse arrivalTask2 = taskService.addArrivalTask(
+                stop.getId(),
+                CreateTaskRequest.builder().description("Unpack bags").build(),
+                "alice"
+        );
+        assertEquals(1, arrivalTask2.getOrderIndex());
 
         TaskResponse updatedStatus = taskService.updateTaskStatus(
                 preTrip.getId(),
@@ -171,7 +189,7 @@ class TripServiceTest {
 
         List<TripSummaryResponse> summaries = tripService.getUserTrips("alice");
         assertEquals(1, summaries.size());
-        assertEquals(4, summaries.getFirst().getTotalTaskCount());
+        assertEquals(6, summaries.getFirst().getTotalTaskCount());
         assertEquals(1, summaries.getFirst().getCompletedTaskCount());
     }
 
@@ -218,5 +236,44 @@ class TripServiceTest {
         assertEquals(LocalDate.of(2026, 7, 10), updated.getStartingDate());
         assertEquals(LocalDate.of(2026, 7, 10), updated.getStops().getFirst().getStopDate());
         assertEquals(LocalDate.of(2026, 7, 13), updated.getEndingDate());
+    }
+
+    @Test
+    void reorderTasks_updatesOrderIndicesCorrectly() {
+        TripDetailResponse trip = tripService.createTrip(
+                CreateTripRequest.builder()
+                        .name("Reorder Test Trip")
+                        .startingDate(LocalDate.of(2026, 10, 1))
+                        .build(),
+                "alice"
+        );
+
+        TaskResponse task1 = taskService.addPreTripTask(
+                trip.getId(),
+                CreateTaskRequest.builder().description("Task 1").build(),
+                "alice"
+        );
+        TaskResponse task2 = taskService.addPreTripTask(
+                trip.getId(),
+                CreateTaskRequest.builder().description("Task 2").build(),
+                "alice"
+        );
+        TaskResponse task3 = taskService.addPreTripTask(
+                trip.getId(),
+                CreateTaskRequest.builder().description("Task 3").build(),
+                "alice"
+        );
+
+        // Reorder tasks: task3 first, then task1, then task2
+        taskService.reorderTasks(List.of(task3.getId(), task1.getId(), task2.getId()), "alice");
+
+        TripDetailResponse refreshed = tripService.getTripById(trip.getId(), "alice");
+        assertEquals(3, refreshed.getPreTripTasks().size());
+        assertEquals("Task 3", refreshed.getPreTripTasks().get(0).getDescription());
+        assertEquals(0, refreshed.getPreTripTasks().get(0).getOrderIndex());
+        assertEquals("Task 1", refreshed.getPreTripTasks().get(1).getDescription());
+        assertEquals(1, refreshed.getPreTripTasks().get(1).getOrderIndex());
+        assertEquals("Task 2", refreshed.getPreTripTasks().get(2).getDescription());
+        assertEquals(2, refreshed.getPreTripTasks().get(2).getOrderIndex());
     }
 }

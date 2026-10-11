@@ -22,6 +22,7 @@ public class TaskResponse {
   private String description;
   private TaskStatus status;
   private TaskCategory category;
+  private Integer orderIndex;
   private Long tripId;
   private Long stopId;
   private Instant createdAt;
@@ -36,6 +37,7 @@ public class TaskResponse {
       .description(task.getDescription())
       .status(task.getStatus())
       .category(task.getCategory())
+      .orderIndex(task.getOrderIndex())
       .tripId(task.getTrip() != null ? task.getTrip().getId() : null)
       .stopId(task.getStop() != null ? task.getStop().getId() : null)
       .createdAt(task.getCreatedAt())

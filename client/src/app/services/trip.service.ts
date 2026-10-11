@@ -66,6 +66,10 @@ export class TripService {
     return this.http.patch<Task>(`${this.taskUrl}/${taskId}/status`, { status });
   }
 
+  reorderTasks(taskIds: number[]): Observable<void> {
+    return this.http.put<void>(`${this.taskUrl}/reorder`, { taskIds });
+  }
+
   deleteTask(taskId: number): Observable<void> {
     return this.http.delete<void>(`${this.taskUrl}/${taskId}`);
   }

@@ -18,10 +18,10 @@ describe('TripDetailComponent', () => {
     startingDate: '2026-08-01',
     endingDate: '2026-08-05',
     preTripTasks: [
-      { id: 101, description: 'Service car', status: TaskStatus.COMPLETED, category: TaskCategory.PRE_TRIP }
+      { id: 101, description: 'Service car', status: TaskStatus.COMPLETED, category: TaskCategory.PRE_TRIP, orderIndex: 1 }
     ],
     departureDayTasks: [
-      { id: 102, description: 'Pack cooler', status: TaskStatus.INCOMPLETE, category: TaskCategory.DEPARTURE_DAY }
+      { id: 102, description: 'Pack cooler', status: TaskStatus.INCOMPLETE, category: TaskCategory.DEPARTURE_DAY, orderIndex: 1 }
     ],
     returnDayTasks: [],
     stops: [
@@ -42,6 +42,7 @@ describe('TripDetailComponent', () => {
       'getTrip',
       'updateTrip',
       'updateTaskStatus',
+      'reorderTasks',
       'deleteTask',
       'addPreTripTask',
       'addDepartureDayTask',
@@ -52,6 +53,7 @@ describe('TripDetailComponent', () => {
       'addDepartureTask'
     ]);
     tripServiceSpy.getTrip.and.returnValue(of(mockTripDetail));
+    tripServiceSpy.reorderTasks.and.returnValue(of(undefined as unknown as void));
 
     await TestBed.configureTestingModule({
       imports: [TripDetailComponent],
@@ -136,5 +138,28 @@ describe('TripDetailComponent', () => {
     expect(component.trip()?.name).toBe('Yellowstone & Grand Teton');
     expect(component.trip()?.startingDate).toBe('2026-08-10');
     expect(component.showEditTripModal).toBeFalse();
+  });
+
+  it('should reorder tasks via drag and drop and call tripService.reorderTasks', () => {
+    // Setup trip with 2 preTrip tasks
+    const tripWithTasks = {
+      ...mockTripDetail,
+      preTripTasks: [
+        { id: 101, description: 'Task 1', status: TaskStatus.INCOMPLETE, category: TaskCategory.PRE_TRIP, orderIndex: 0 },
+        { id: 102, description: 'Task 2', status: TaskStatus.INCOMPLETE, category: TaskCategory.PRE_TRIP, orderIndex: 1 }
+      ]
+    };
+    component.trip.set(tripWithTasks);
+
+    const dragStartEvent = new DragEvent('dragstart');
+    component.onTaskDragStart(dragStartEvent, 'preTrip', 0);
+    expect(component.draggedState).toEqual({ listType: 'preTrip', index: 0 });
+
+    const dropEvent = new DragEvent('drop');
+    component.onTaskDrop(dropEvent, 'preTrip', 1);
+
+    expect(component.trip()?.preTripTasks[0].id).toBe(102);
+    expect(component.trip()?.preTripTasks[1].id).toBe(101);
+    expect(tripServiceSpy.reorderTasks).toHaveBeenCalledWith([102, 101]);
   });
 });

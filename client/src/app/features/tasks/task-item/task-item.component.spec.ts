@@ -17,15 +17,39 @@ describe('TaskItemComponent', () => {
       id: 1,
       description: 'Pack warm jacket',
       status: TaskStatus.INCOMPLETE,
-      category: TaskCategory.PRE_TRIP
+      category: TaskCategory.PRE_TRIP,
+      orderIndex: 1
     };
     fixture.detectChanges();
   });
 
-  it('should create and display description', () => {
+  it('should create and display description and grab handle', () => {
     expect(component).toBeTruthy();
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('.task-text')?.textContent).toContain('Pack warm jacket');
+    expect(compiled.querySelector('.drag-handle')).toBeTruthy();
+  });
+
+  it('should emit itemDragStart on drag start', () => {
+    spyOn(component.itemDragStart, 'emit');
+    const dragEvent = new DragEvent('dragstart');
+    component.onDragStart(dragEvent);
+    expect(component.itemDragStart.emit).toHaveBeenCalledWith({
+      event: dragEvent,
+      task: component.task,
+      index: 0
+    });
+  });
+
+  it('should emit itemDrop on drop', () => {
+    spyOn(component.itemDrop, 'emit');
+    const dragEvent = new DragEvent('drop');
+    component.onDrop(dragEvent);
+    expect(component.itemDrop.emit).toHaveBeenCalledWith({
+      event: dragEvent,
+      task: component.task,
+      index: 0
+    });
   });
 
   it('should emit statusChange on checkbox toggle', () => {

@@ -7,7 +7,21 @@ import { Task, TaskStatus } from '../../../models/task.model';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="task-item" [class.completed]="task.status === TaskStatus.COMPLETED">
+    <div
+      class="task-item"
+      [class.completed]="task.status === TaskStatus.COMPLETED"
+      [class.is-dragging]="isDragging"
+      [class.is-drag-over]="isDragOver"
+      draggable="true"
+      (dragstart)="onDragStart($event)"
+      (dragover)="onDragOver($event)"
+      (dragleave)="onDragLeave($event)"
+      (drop)="onDrop($event)"
+      (dragend)="onDragEnd($event)"
+    >
+      <div class="drag-handle" title="Drag to reorder" aria-label="Drag to reorder">
+        <span class="handle-icon" aria-hidden="true">&#x283F;</span>
+      </div>
       <label class="task-checkbox-label">
         <input
           type="checkbox"
@@ -31,10 +45,45 @@ import { Task, TaskStatus } from '../../../models/task.model';
       border: 1px solid #e2e8f0;
       border-radius: 6px;
       transition: all 0.2s ease;
+      cursor: default;
     }
     .task-item:hover {
       background: #f1f5f9;
       border-color: #cbd5e1;
+    }
+    .task-item.is-dragging {
+      opacity: 0.45;
+      background: #eff6ff;
+      border: 1px dashed #3b82f6;
+    }
+    .task-item.is-drag-over {
+      border-top: 2px solid #2563eb;
+      background: #f0fdf4;
+      box-shadow: 0 -2px 4px rgba(37, 99, 235, 0.15);
+    }
+    .drag-handle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 8px;
+      padding: 2px 4px;
+      cursor: grab;
+      user-select: none;
+      color: #94a3b8;
+      border-radius: 4px;
+      transition: color 0.15s ease, background 0.15s ease;
+    }
+    .drag-handle:hover {
+      color: #334155;
+      background: #e2e8f0;
+    }
+    .drag-handle:active {
+      cursor: grabbing;
+    }
+    .handle-icon {
+      font-size: 1.15rem;
+      line-height: 1;
+      letter-spacing: -1px;
     }
     .task-checkbox-label {
       display: flex;
@@ -82,8 +131,17 @@ import { Task, TaskStatus } from '../../../models/task.model';
 })
 export class TaskItemComponent {
   @Input({ required: true }) task!: Task;
+  @Input() index = 0;
+  @Input() isDragging = false;
+  @Input() isDragOver = false;
+
   @Output() statusChange = new EventEmitter<{ task: Task; newStatus: TaskStatus }>();
   @Output() deleteTask = new EventEmitter<Task>();
+  @Output() itemDragStart = new EventEmitter<{ event: DragEvent; task: Task; index: number }>();
+  @Output() itemDragOver = new EventEmitter<{ event: DragEvent; task: Task; index: number }>();
+  @Output() itemDragLeave = new EventEmitter<{ event: DragEvent; task: Task; index: number }>();
+  @Output() itemDrop = new EventEmitter<{ event: DragEvent; task: Task; index: number }>();
+  @Output() itemDragEnd = new EventEmitter<{ event: DragEvent; task: Task; index: number }>();
 
   TaskStatus = TaskStatus;
 
@@ -97,5 +155,29 @@ export class TaskItemComponent {
 
   onDelete(): void {
     this.deleteTask.emit(this.task);
+  }
+
+  onDragStart(event: DragEvent): void {
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', String(this.index));
+    }
+    this.itemDragStart.emit({ event, task: this.task, index: this.index });
+  }
+
+  onDragOver(event: DragEvent): void {
+    this.itemDragOver.emit({ event, task: this.task, index: this.index });
+  }
+
+  onDragLeave(event: DragEvent): void {
+    this.itemDragLeave.emit({ event, task: this.task, index: this.index });
+  }
+
+  onDrop(event: DragEvent): void {
+    this.itemDrop.emit({ event, task: this.task, index: this.index });
+  }
+
+  onDragEnd(event: DragEvent): void {
+    this.itemDragEnd.emit({ event, task: this.task, index: this.index });
   }
 }

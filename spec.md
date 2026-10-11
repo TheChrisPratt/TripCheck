@@ -53,6 +53,7 @@
 - A Task record will contain the following fields:
   - Task description
   - Task status
+  - Task Order index
 
 ### B. Create a new Trip
 - Users must be able to create a new trip to contain the details of their 

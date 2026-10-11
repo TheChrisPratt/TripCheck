@@ -16,6 +16,7 @@ export interface Task {
   description: string;
   status: TaskStatus;
   category: TaskCategory;
+  orderIndex: number;
   tripId?: number;
   stopId?: number;
   createdAt?: string;

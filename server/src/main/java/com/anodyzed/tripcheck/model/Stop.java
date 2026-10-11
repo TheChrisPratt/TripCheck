@@ -10,6 +10,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
@@ -22,6 +23,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 @Entity
@@ -76,6 +78,7 @@ public class Stop {
   private Trip trip;
 
   @OneToMany(mappedBy="stop", cascade=CascadeType.ALL, orphanRemoval=true)
+  @OrderBy("orderIndex ASC")
   @Builder.Default
   private List<Task> tasks = new ArrayList<>();
 
@@ -85,6 +88,7 @@ public class Stop {
     }
     return tasks.stream()
       .filter(t -> t.getCategory() == TaskCategory.ARRIVAL)
+      .sorted(Comparator.comparing(Task::getOrderIndex))
       .toList();
   } //getArrivalTasks
 
@@ -94,6 +98,7 @@ public class Stop {
     }
     return tasks.stream()
       .filter(t -> t.getCategory() == TaskCategory.DEPARTURE)
+      .sorted(Comparator.comparing(Task::getOrderIndex))
       .toList();
   } //getDepartureTasks
 
@@ -105,6 +110,7 @@ public class Stop {
       .description(description)
       .category(TaskCategory.ARRIVAL)
       .status(TaskStatus.INCOMPLETE)
+      .orderIndex(getArrivalTasks().size())
       .stop(this)
       .build();
     tasks.add(task);
@@ -118,6 +124,7 @@ public class Stop {
       .description(description)
       .category(TaskCategory.DEPARTURE)
       .status(TaskStatus.INCOMPLETE)
+      .orderIndex(getDepartureTasks().size())
       .stop(this)
       .build();
     tasks.add(task);
