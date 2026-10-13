@@ -18,9 +18,14 @@ import { TaskModalComponent } from '../../tasks/task-modal/task-modal.component'
           <h3 class="stop-name">{{ stop.name }}</h3>
           <div class="stop-date-badge">{{ stop.stopDate | date:'mediumDate' }} &bull; {{ stop.numberOfNights }} {{ stop.numberOfNights === 1 ? 'night' : 'nights' }}</div>
         </div>
-        <button type="button" class="btn-delete-stop" (click)="onDeleteStop()" title="Delete stop">
-          &times;
-        </button>
+        <div class="stop-header-actions">
+          <button type="button" class="btn-clone-stop" (click)="onCloneStop()" title="Clone stop" aria-label="Clone stop">
+            📋 Clone
+          </button>
+          <button type="button" class="btn-delete-stop" (click)="onDeleteStop()" title="Delete stop" aria-label="Delete stop">
+            &times;
+          </button>
+        </div>
       </div>
 
       <div class="stop-details-grid">
@@ -176,6 +181,30 @@ import { TaskModalComponent } from '../../tasks/task-modal/task-modal.component'
       margin-bottom: 16px;
       border-bottom: 1px solid #f1f5f9;
       padding-bottom: 14px;
+    }
+    .stop-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-clone-stop {
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: #334155;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s ease;
+    }
+    .btn-clone-stop:hover {
+      background: #e2e8f0;
+      border-color: #94a3b8;
+      color: #0f172a;
     }
     .stop-badge {
       display: inline-block;
@@ -350,6 +379,7 @@ export class StopCardComponent {
 
   @Input({ required: true }) stop!: Stop;
   @Output() deleteStop = new EventEmitter<number>();
+  @Output() cloneStop = new EventEmitter<Stop>();
   @Output() addArrivalTask = new EventEmitter<{ stopId: number; description: string }>();
   @Output() addDepartureTask = new EventEmitter<{ stopId: number; description: string }>();
   @Output() taskStatusChange = new EventEmitter<{ task: Task; newStatus: TaskStatus }>();
@@ -379,6 +409,10 @@ export class StopCardComponent {
 
   get completedDepartureTasksCount(): number {
     return this.stop.departureTasks?.filter((t) => t.status === TaskStatus.COMPLETED).length || 0;
+  }
+
+  onCloneStop(): void {
+    this.cloneStop.emit(this.stop);
   }
 
   onDeleteStop(): void {

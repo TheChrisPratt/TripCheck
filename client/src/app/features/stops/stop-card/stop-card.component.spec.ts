@@ -79,4 +79,13 @@ describe('StopCardComponent', () => {
     expect(component.stop.arrivalTasks[1].id).toBe(10);
     expect(tripServiceSpy.reorderTasks).toHaveBeenCalledWith([11, 10]);
   });
+
+  it('should emit cloneStop when clone button is clicked', () => {
+    spyOn(component.cloneStop, 'emit');
+    const cloneBtn = fixture.nativeElement.querySelector('.btn-clone-stop') as HTMLButtonElement;
+    expect(cloneBtn).toBeTruthy();
+    cloneBtn.click();
+
+    expect(component.cloneStop.emit).toHaveBeenCalledWith(component.stop);
+  });
 });

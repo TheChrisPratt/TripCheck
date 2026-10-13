@@ -55,33 +55,33 @@ Use the Gradle wrapper (`./gradlew` on Linux/macOS or `.\gradlew.bat` on Windows
 ### Build and Package
 - **Build and test the entire project:**
   ```bash
-  ./gradlew build
+  gradlew build
   ```
 - **Build combined WAR artifact:**
   ```bash
-  ./gradlew :server:bootWar
+  gradlew :server:bootWar
   ```
 - **Build without running tests:**
   ```bash
-  ./gradlew assemble
+  gradlew assemble
   ```
 - **Clean build artifacts:**
   ```bash
-  ./gradlew clean
+  gradlew clean
   ```
 
 ### Running Tests
 - **Run all project tests:**
   ```bash
-  ./gradlew test
+  gradlew test
   ```
 - **Run backend tests only:**
   ```bash
-  ./gradlew :server:test
+  gradlew :server:test
   ```
 - **Run frontend tests only:**
   ```bash
-  ./gradlew :client:test
+  gradlew :client:test
   ```
 
 ---
@@ -91,7 +91,7 @@ Use the Gradle wrapper (`./gradlew` on Linux/macOS or `.\gradlew.bat` on Windows
 ### 1. Run the Backend Server (Development)
 Start the Spring Boot backend server with Gradle:
 ```bash
-./gradlew :server:bootRun
+gradlew :server:bootRun
 ```
 The REST API server will run at `http://localhost:8081`.
 
@@ -113,7 +113,7 @@ The application is configured to build as a unified executable WAR artifact bund
 ### 1. Building the WAR Package
 Generate the combined WAR artifact using:
 ```bash
-./gradlew :server:bootWar
+gradlew :server:bootWar
 ```
 The deployable archive is created at:
 `server/build/libs/TripCheck-0.0.1-SNAPSHOT.war`

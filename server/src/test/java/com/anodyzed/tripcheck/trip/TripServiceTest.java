@@ -1,5 +1,6 @@
 package com.anodyzed.tripcheck.trip;
 
+import com.anodyzed.tripcheck.dto.CloneStopRequest;
 import com.anodyzed.tripcheck.dto.CreateStopRequest;
 import com.anodyzed.tripcheck.dto.CreateTaskRequest;
 import com.anodyzed.tripcheck.dto.CreateTripRequest;
@@ -275,5 +276,121 @@ class TripServiceTest {
         assertEquals(1, refreshed.getPreTripTasks().get(1).getOrderIndex());
         assertEquals("Task 2", refreshed.getPreTripTasks().get(2).getDescription());
         assertEquals(2, refreshed.getPreTripTasks().get(2).getOrderIndex());
+    }
+
+    @Test
+    void cloneStop_clonesStopAndItsTasksWithIncompleteStatusAndUpdatesOrderIndices() {
+        TripDetailResponse trip = tripService.createTrip(
+                CreateTripRequest.builder()
+                        .name("Roadtrip Across Parks")
+                        .startingDate(LocalDate.of(2026, 8, 1))
+                        .build(),
+                "alice"
+        );
+
+        StopResponse ignore = stopService.addStop(
+                trip.getId(),
+                CreateStopRequest.builder().name("Stop A").location("Loc A").numberOfNights(2).build(),
+                "alice"
+        );
+        StopResponse stop1 = stopService.addStop(
+                trip.getId(),
+                CreateStopRequest.builder().name("Stop B").location("Loc B").numberOfNights(3).build(),
+                "alice"
+        );
+        StopResponse ignored = stopService.addStop(
+                trip.getId(),
+                CreateStopRequest.builder().name("Stop C").location("Loc C").numberOfNights(1).build(),
+                "alice"
+        );
+
+        // Add Arrival and Departure tasks to Stop B (orderIndex = 1)
+        TaskResponse arrTask = taskService.addArrivalTask(
+                stop1.getId(),
+                CreateTaskRequest.builder().description("Check into lodge").build(),
+                "alice"
+        );
+        TaskResponse depTask = taskService.addDepartureTask(
+                stop1.getId(),
+                CreateTaskRequest.builder().description("Pack cooler and checkout").build(),
+                "alice"
+        );
+
+        // Mark them completed
+        taskService.updateTaskStatus(
+                arrTask.getId(),
+                UpdateTaskStatusRequest.builder().status(TaskStatus.COMPLETED).build(),
+                "alice"
+        );
+        taskService.updateTaskStatus(
+                depTask.getId(),
+                UpdateTaskStatusRequest.builder().status(TaskStatus.COMPLETED).build(),
+                "alice"
+        );
+
+        // Clone Stop B
+        CloneStopRequest cloneReq = CloneStopRequest.builder()
+                .name("Stop B (Cloned)")
+                .location("Loc B New")
+                .numberOfNights(4)
+                .telephoneNumber("555-1234")
+                .confirmationCode("CONF-999")
+                .siteNumber("Site 12")
+                .notes("Cloned notes")
+                .webAddress("https://example.com")
+                .build();
+
+        StopResponse clonedStop = stopService.cloneStop(stop1.getId(), cloneReq, "alice");
+
+        assertNotNull(clonedStop.getId());
+        org.junit.jupiter.api.Assertions.assertNotEquals(stop1.getId(), clonedStop.getId());
+        assertEquals("Stop B (Cloned)", clonedStop.getName());
+        assertEquals("Loc B New", clonedStop.getLocation());
+        assertEquals(4, clonedStop.getNumberOfNights());
+        assertEquals("555-1234", clonedStop.getTelephoneNumber());
+        assertEquals("CONF-999", clonedStop.getConfirmationCode());
+        assertEquals("Site 12", clonedStop.getSiteNumber());
+        assertEquals("Cloned notes", clonedStop.getNotes());
+        assertEquals("https://example.com", clonedStop.getWebAddress());
+        assertEquals(trip.getId(), clonedStop.getTripId());
+        assertEquals(2, clonedStop.getOrderIndex());
+
+        // Verify tasks on cloned stop
+        assertEquals(1, clonedStop.getArrivalTasks().size());
+        assertEquals(1, clonedStop.getDepartureTasks().size());
+        assertEquals("Check into lodge", clonedStop.getArrivalTasks().getFirst().getDescription());
+        assertEquals(TaskStatus.INCOMPLETE, clonedStop.getArrivalTasks().getFirst().getStatus());
+        org.junit.jupiter.api.Assertions.assertNotEquals(arrTask.getId(), clonedStop.getArrivalTasks().getFirst().getId());
+
+        assertEquals("Pack cooler and checkout", clonedStop.getDepartureTasks().getFirst().getDescription());
+        assertEquals(TaskStatus.INCOMPLETE, clonedStop.getDepartureTasks().getFirst().getStatus());
+        org.junit.jupiter.api.Assertions.assertNotEquals(depTask.getId(), clonedStop.getDepartureTasks().getFirst().getId());
+
+        // Verify the entire trip stop order and date calculations
+        TripDetailResponse refreshedTrip = tripService.getTripById(trip.getId(), "alice");
+        assertEquals(4, refreshedTrip.getStops().size());
+
+        // Stop 0: Stop A (orderIndex 0, nights 2) -> 2026-08-01
+        assertEquals("Stop A", refreshedTrip.getStops().getFirst().getName());
+        assertEquals(0, refreshedTrip.getStops().get(0).getOrderIndex());
+        assertEquals(LocalDate.of(2026, 8, 1), refreshedTrip.getStops().get(0).getStopDate());
+
+        // Stop 1: Stop B (orderIndex 1, nights 3) -> 2026-08-03
+        assertEquals("Stop B", refreshedTrip.getStops().get(1).getName());
+        assertEquals(1, refreshedTrip.getStops().get(1).getOrderIndex());
+        assertEquals(LocalDate.of(2026, 8, 3), refreshedTrip.getStops().get(1).getStopDate());
+
+        // Stop 2: Stop B (Cloned) (orderIndex 2, nights 4) -> 2026-08-06
+        assertEquals("Stop B (Cloned)", refreshedTrip.getStops().get(2).getName());
+        assertEquals(2, refreshedTrip.getStops().get(2).getOrderIndex());
+        assertEquals(LocalDate.of(2026, 8, 6), refreshedTrip.getStops().get(2).getStopDate());
+
+        // Stop 3: Stop C (orderIndex 3, nights 1) -> 2026-08-10
+        assertEquals("Stop C", refreshedTrip.getStops().get(3).getName());
+        assertEquals(3, refreshedTrip.getStops().get(3).getOrderIndex());
+        assertEquals(LocalDate.of(2026, 8, 10), refreshedTrip.getStops().get(3).getStopDate());
+
+        // Trip ending date
+        assertEquals(LocalDate.of(2026, 8, 11), refreshedTrip.getEndingDate());
     }
 }

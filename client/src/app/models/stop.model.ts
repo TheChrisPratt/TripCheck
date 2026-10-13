@@ -27,3 +27,15 @@ export interface CreateStopDto {
   siteNumber?: string;
   notes?: string;
 }
+
+export interface CloneStopDto {
+  name: string;
+  numberOfNights?: number;
+  location?: string;
+  telephoneNumber?: string;
+  confirmationCode?: string;
+  notes?: string;
+  siteNumber?: string;
+  stopDate?: string;
+  webAddress?: string;
+}

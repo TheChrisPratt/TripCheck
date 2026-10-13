@@ -2,6 +2,7 @@ package com.anodyzed.tripcheck.resources;
 
 import jakarta.validation.Valid;
 
+import com.anodyzed.tripcheck.dto.CloneStopRequest;
 import com.anodyzed.tripcheck.dto.CreateTaskRequest;
 import com.anodyzed.tripcheck.dto.StopResponse;
 import com.anodyzed.tripcheck.dto.TaskResponse;
@@ -42,6 +43,15 @@ public class StopResource {
     StopResponse stop = stopService.getStopById(stopId,getUserId(authentication));
     return ResponseEntity.ok(stop);
   } //getStop
+
+  @PostMapping("/{stopId}/clone")
+  public ResponseEntity<StopResponse> cloneStop (
+    @PathVariable Long stopId,
+    @Valid @RequestBody CloneStopRequest request,
+    Authentication authentication) {
+    StopResponse stop = stopService.cloneStop(stopId,request,getUserId(authentication));
+    return ResponseEntity.status(HttpStatus.CREATED).body(stop);
+  } //cloneStop
 
   @DeleteMapping("/{stopId}")
   public ResponseEntity<Void> deleteStop (

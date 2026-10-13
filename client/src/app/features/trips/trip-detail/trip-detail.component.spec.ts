@@ -48,6 +48,7 @@ describe('TripDetailComponent', () => {
       'addDepartureDayTask',
       'addReturnDayTask',
       'addStop',
+      'cloneStop',
       'deleteStop',
       'addArrivalTask',
       'addDepartureTask'
@@ -161,5 +162,31 @@ describe('TripDetailComponent', () => {
     expect(component.trip()?.preTripTasks[0].id).toBe(102);
     expect(component.trip()?.preTripTasks[1].id).toBe(101);
     expect(tripServiceSpy.reorderTasks).toHaveBeenCalledWith([102, 101]);
+  });
+
+  it('should open clone modal and clone stop when submitted', () => {
+    const stopToClone = mockTripDetail.stops[0];
+    component.onOpenCloneModal(stopToClone);
+    expect(component.stopToClone).toEqual(stopToClone);
+
+    const clonedStopResponse = {
+      ...stopToClone,
+      id: 202,
+      name: 'Old Faithful (Cloned)',
+      orderIndex: 1
+    };
+    tripServiceSpy.cloneStop.and.returnValue(of(clonedStopResponse));
+
+    component.onCloneStopSubmit({
+      name: 'Old Faithful (Cloned)',
+      numberOfNights: 4
+    });
+
+    expect(tripServiceSpy.cloneStop).toHaveBeenCalledWith(201, {
+      name: 'Old Faithful (Cloned)',
+      numberOfNights: 4
+    });
+    expect(component.stopToClone).toBeNull();
+    expect(tripServiceSpy.getTrip).toHaveBeenCalled();
   });
 });

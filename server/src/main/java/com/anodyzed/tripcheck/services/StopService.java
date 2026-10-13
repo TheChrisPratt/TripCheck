@@ -1,8 +1,11 @@
 package com.anodyzed.tripcheck.services;
 
+import com.anodyzed.tripcheck.dto.CloneStopRequest;
 import com.anodyzed.tripcheck.dto.CreateStopRequest;
 import com.anodyzed.tripcheck.dto.StopResponse;
 import com.anodyzed.tripcheck.model.Stop;
+import com.anodyzed.tripcheck.model.Task;
+import com.anodyzed.tripcheck.model.TaskStatus;
 import com.anodyzed.tripcheck.model.Trip;
 import com.anodyzed.tripcheck.repository.StopRepository;
 import com.anodyzed.tripcheck.repository.TripRepository;
@@ -42,6 +45,50 @@ public class StopService {
     trip.addStop(stop);
     return StopResponse.fromEntity(tripRepository.save(trip).getStops().getLast());
   } //addStop
+
+  public StopResponse cloneStop (Long sourceStopId,CloneStopRequest request,String userId) {
+    Stop sourceStop = getStopEntity(sourceStopId,userId);
+    Trip trip = sourceStop.getTrip();
+    if(trip == null) {
+      throw new ResourceNotFoundException("Trip not found for stop id: " + sourceStopId);
+    }
+
+    Stop clonedStop = Stop.builder()
+      .name(request.getName())
+      .location(request.getLocation())
+      .numberOfNights(request.getNumberOfNights() != null ? request.getNumberOfNights() : 1)
+      .webAddress(request.getWebAddress())
+      .telephoneNumber(request.getTelephoneNumber())
+      .confirmationCode(request.getConfirmationCode())
+      .siteNumber(request.getSiteNumber())
+      .notes(request.getNotes())
+      .stopDate(request.getStopDate())
+      .build();
+
+    if(sourceStop.getTasks() != null) {
+      for(Task sourceTask : sourceStop.getTasks()) {
+        Task clonedTask = Task.builder()
+          .description(sourceTask.getDescription())
+          .category(sourceTask.getCategory())
+          .status(TaskStatus.INCOMPLETE)
+          .orderIndex(sourceTask.getOrderIndex())
+          .stop(clonedStop)
+          .build();
+        clonedStop.getTasks().add(clonedTask);
+      }
+    }
+
+    int targetIndex = (sourceStop.getOrderIndex() != null ? sourceStop.getOrderIndex() : 0) + 1;
+    trip.addClonedStop(sourceStop,clonedStop);
+    Trip savedTrip = tripRepository.save(trip);
+
+    Stop savedClonedStop = savedTrip.getStops().stream()
+      .filter(s -> s.getOrderIndex() != null && s.getOrderIndex() == targetIndex)
+      .findFirst()
+      .orElse(clonedStop);
+
+    return StopResponse.fromEntity(savedClonedStop);
+  } //cloneStop
 
   @Transactional(readOnly=true)
   public StopResponse getStopById (Long stopId,String userId) {

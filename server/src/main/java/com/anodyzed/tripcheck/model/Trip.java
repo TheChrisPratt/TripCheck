@@ -143,6 +143,22 @@ public class Trip {
     recalculateDates();
   } //addStop
 
+  public void addClonedStop (Stop sourceStop,Stop clonedStop) {
+    if(stops == null) {
+      stops = new ArrayList<>();
+    }
+    int sourceIndex = sourceStop != null && sourceStop.getOrderIndex() != null ? sourceStop.getOrderIndex() : 0;
+    for(Stop s : stops) {
+      if(s.getOrderIndex() != null && s.getOrderIndex() > sourceIndex) {
+        s.setOrderIndex(s.getOrderIndex() + 1);
+      }
+    }
+    clonedStop.setOrderIndex(sourceIndex + 1);
+    clonedStop.setTrip(this);
+    stops.add(clonedStop);
+    recalculateDates();
+  } //addClonedStop
+
   public void recalculateDates () {
     if(startingDate != null) {
       if(stops != null && !stops.isEmpty()) {

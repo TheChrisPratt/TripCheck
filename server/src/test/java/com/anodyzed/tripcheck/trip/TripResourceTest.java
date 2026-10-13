@@ -146,12 +146,24 @@ class TripResourceTest {
                 .andExpect(jsonPath("$.stops[0].stopDate").value("2026-10-10"))
                 .andExpect(jsonPath("$.endingDate").value("2026-10-13"));
 
+        // 8c. Clone Stop
+        mockMvc.perform(post("/api/stops/" + stopId + "/clone")
+                        .cookie(cookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"North Rim Lodge\",\"location\":\"Grand Canyon North\",\"numberOfNights\":2}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").exists())
+                .andExpect(jsonPath("$.name").value("North Rim Lodge"))
+                .andExpect(jsonPath("$.orderIndex").value(1))
+                .andExpect(jsonPath("$.arrivalTasks[0].status").value("INCOMPLETE"))
+                .andExpect(jsonPath("$.arrivalTasks[0].description").value("Check in at South Rim"));
+
         // 9. List User Trips
         mockMvc.perform(get("/api/trips")
                         .cookie(cookie))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].name").value("Grand Canyon & Beyond"))
-                .andExpect(jsonPath("$[0].stopCount").value(1));
+                .andExpect(jsonPath("$[0].stopCount").value(2));
     }
 
     @Test

@@ -107,4 +107,39 @@ describe('TripService', () => {
     expect(req.request.body).toEqual({ taskIds: [10, 20, 30] });
     req.flush(null);
   });
+
+  it('should clone stop', () => {
+    const cloneDto = {
+      name: 'Yosemite Cloned',
+      numberOfNights: 3,
+      location: 'Yosemite West',
+      telephoneNumber: '555-4321',
+      confirmationCode: 'RES-777',
+      siteNumber: 'Site 8',
+      notes: 'Cloned note',
+      stopDate: '2026-07-08',
+      webAddress: 'https://example.com'
+    };
+
+    const mockStopResponse = {
+      id: 5,
+      name: 'Yosemite Cloned',
+      stopDate: '2026-07-08',
+      numberOfNights: 3,
+      orderIndex: 1,
+      arrivalTasks: [],
+      departureTasks: []
+    };
+
+    service.cloneStop(1, cloneDto).subscribe((stop) => {
+      expect(stop.id).toBe(5);
+      expect(stop.name).toBe('Yosemite Cloned');
+      expect(stop.orderIndex).toBe(1);
+    });
+
+    const req = httpTesting.expectOne('api/stops/1/clone');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual(cloneDto);
+    req.flush(mockStopResponse);
+  });
 });

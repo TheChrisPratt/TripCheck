@@ -4,11 +4,12 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { TripService } from '../../../services/trip.service';
 import { TripDetail, UpdateTripDto } from '../../../models/trip.model';
 import { Task, TaskStatus } from '../../../models/task.model';
-import { CreateStopDto } from '../../../models/stop.model';
+import { CreateStopDto, CloneStopDto, Stop } from '../../../models/stop.model';
 import { TaskItemComponent } from '../../tasks/task-item/task-item.component';
 import { TaskModalComponent } from '../../tasks/task-modal/task-modal.component';
 import { StopCardComponent } from '../../stops/stop-card/stop-card.component';
 import { StopModalComponent } from '../../stops/stop-modal/stop-modal.component';
+import { StopCloneModalComponent } from '../../stops/stop-clone-modal/stop-clone-modal.component';
 import { TripEditModalComponent } from '../trip-edit-modal/trip-edit-modal.component';
 
 @Component({
@@ -21,6 +22,7 @@ import { TripEditModalComponent } from '../trip-edit-modal/trip-edit-modal.compo
     TaskModalComponent,
     StopCardComponent,
     StopModalComponent,
+    StopCloneModalComponent,
     TripEditModalComponent
   ],
   template: `
@@ -161,6 +163,7 @@ import { TripEditModalComponent } from '../trip-edit-modal/trip-edit-modal.compo
               @for (stop of trip()!.stops; track stop.id) {
                 <app-stop-card
                   [stop]="stop"
+                  (cloneStop)="onOpenCloneModal($event)"
                   (deleteStop)="onDeleteStop($event)"
                   (addArrivalTask)="onAddArrivalTask($event)"
                   (addDepartureTask)="onAddDepartureTask($event)"
@@ -249,6 +252,14 @@ import { TripEditModalComponent } from '../trip-edit-modal/trip-edit-modal.compo
         <app-stop-modal
           (stopSubmitted)="onAddStop($event)"
           (modalClosed)="showAddStopModal = false"
+        />
+      }
+
+      @if (stopToClone) {
+        <app-stop-clone-modal
+          [sourceStop]="stopToClone"
+          (stopCloned)="onCloneStopSubmit($event)"
+          (modalClosed)="stopToClone = null"
         />
       }
 
@@ -477,6 +488,7 @@ export class TripDetailComponent implements OnInit {
   showReturnDayModal = false;
   showAddStopModal = false;
   showEditTripModal = false;
+  stopToClone: Stop | null = null;
 
   draggedState: { listType: string; index: number } | null = null;
   dragOverState: { listType: string; index: number } | null = null;
@@ -677,6 +689,23 @@ export class TripDetailComponent implements OnInit {
         this.loadTrip(this.trip()!.id);
       },
       error: (err) => alert(err?.error?.message || 'Failed to add stop.')
+    });
+  }
+
+  onOpenCloneModal(stop: Stop): void {
+    this.stopToClone = stop;
+  }
+
+  onCloneStopSubmit(dto: CloneStopDto): void {
+    if (!this.stopToClone) return;
+    this.tripService.cloneStop(this.stopToClone.id, dto).subscribe({
+      next: () => {
+        this.stopToClone = null;
+        if (this.trip()) {
+          this.loadTrip(this.trip()!.id);
+        }
+      },
+      error: (err) => alert(err?.error?.message || 'Failed to clone stop.')
     });
   }
 
