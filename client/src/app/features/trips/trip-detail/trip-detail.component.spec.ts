@@ -92,30 +92,36 @@ describe('TripDetailComponent', () => {
     expect(component.getCompletedCount(depTasks)).toBe(0);
   });
 
-  it('should toggle checklist collapse state for pre-trip, departure day, and return day', () => {
-    // Initially all open
-    expect(component.isPreTripCollapsed()).toBeFalse();
-    expect(component.isDepartureDayCollapsed()).toBeFalse();
-    expect(component.isReturnDayCollapsed()).toBeFalse();
-
-    // Toggle pre-trip
-    component.togglePreTrip();
+  it('should default all checklist accordions to closed', () => {
     expect(component.isPreTripCollapsed()).toBeTrue();
+    expect(component.isDepartureDayCollapsed()).toBeTrue();
+    expect(component.isReturnDayCollapsed()).toBeTrue();
+  });
+
+  it('should toggle checklist collapse state for pre-trip, departure day, and return day', () => {
+    // Initially all closed
+    expect(component.isPreTripCollapsed()).toBeTrue();
+    expect(component.isDepartureDayCollapsed()).toBeTrue();
+    expect(component.isReturnDayCollapsed()).toBeTrue();
+
+    // Toggle pre-trip to expand
+    component.togglePreTrip();
+    expect(component.isPreTripCollapsed()).toBeFalse();
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelectorAll('.checklist-card')[0].classList).toContain('is-collapsed');
+    expect(compiled.querySelectorAll('.checklist-card')[0].classList).not.toContain('is-collapsed');
 
-    // Toggle again to expand
+    // Toggle again to collapse
     component.togglePreTrip();
-    expect(component.isPreTripCollapsed()).toBeFalse();
+    expect(component.isPreTripCollapsed()).toBeTrue();
 
     // Toggle departure day
     component.toggleDepartureDay();
-    expect(component.isDepartureDayCollapsed()).toBeTrue();
+    expect(component.isDepartureDayCollapsed()).toBeFalse();
 
     // Toggle return day
     component.toggleReturnDay();
-    expect(component.isReturnDayCollapsed()).toBeTrue();
+    expect(component.isReturnDayCollapsed()).toBeFalse();
   });
 
   it('should update trip name and starting date when submitted from edit modal', () => {

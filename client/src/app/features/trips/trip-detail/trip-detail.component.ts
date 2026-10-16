@@ -493,9 +493,9 @@ export class TripDetailComponent implements OnInit {
   draggedState: { listType: string; index: number } | null = null;
   dragOverState: { listType: string; index: number } | null = null;
 
-  isPreTripCollapsed = signal<boolean>(false);
-  isDepartureDayCollapsed = signal<boolean>(false);
-  isReturnDayCollapsed = signal<boolean>(false);
+  isPreTripCollapsed = signal<boolean>(true);
+  isDepartureDayCollapsed = signal<boolean>(true);
+  isReturnDayCollapsed = signal<boolean>(true);
 
   togglePreTrip(): void {
     this.isPreTripCollapsed.update((v) => !v);

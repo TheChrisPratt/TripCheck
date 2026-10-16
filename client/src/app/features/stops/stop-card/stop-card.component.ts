@@ -392,8 +392,8 @@ export class StopCardComponent {
   draggedState: { listType: string; index: number } | null = null;
   dragOverState: { listType: string; index: number } | null = null;
 
-  isArrivalCollapsed = signal<boolean>(false);
-  isDepartureCollapsed = signal<boolean>(false);
+  isArrivalCollapsed = signal<boolean>(true);
+  isDepartureCollapsed = signal<boolean>(true);
 
   toggleArrival(): void {
     this.isArrivalCollapsed.update((v) => !v);
