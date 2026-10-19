@@ -158,6 +158,18 @@ class TripResourceTest {
                 .andExpect(jsonPath("$.arrivalTasks[0].status").value("INCOMPLETE"))
                 .andExpect(jsonPath("$.arrivalTasks[0].description").value("Check in at South Rim"));
 
+        // 8d. Update Stop
+        mockMvc.perform(put("/api/stops/" + stopId)
+                        .cookie(cookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"South Rim Luxury Lodge\",\"location\":\"Grand Canyon Village West\",\"numberOfNights\":4,\"confirmationCode\":\"CONF-888\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(stopId))
+                .andExpect(jsonPath("$.name").value("South Rim Luxury Lodge"))
+                .andExpect(jsonPath("$.location").value("Grand Canyon Village West"))
+                .andExpect(jsonPath("$.numberOfNights").value(4))
+                .andExpect(jsonPath("$.confirmationCode").value("CONF-888"));
+
         // 9. List User Trips
         mockMvc.perform(get("/api/trips")
                         .cookie(cookie))

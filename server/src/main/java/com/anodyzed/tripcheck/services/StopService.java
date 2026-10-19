@@ -3,6 +3,7 @@ package com.anodyzed.tripcheck.services;
 import com.anodyzed.tripcheck.dto.CloneStopRequest;
 import com.anodyzed.tripcheck.dto.CreateStopRequest;
 import com.anodyzed.tripcheck.dto.StopResponse;
+import com.anodyzed.tripcheck.dto.UpdateStopRequest;
 import com.anodyzed.tripcheck.model.Stop;
 import com.anodyzed.tripcheck.model.Task;
 import com.anodyzed.tripcheck.model.TaskStatus;
@@ -45,6 +46,27 @@ public class StopService {
     trip.addStop(stop);
     return StopResponse.fromEntity(tripRepository.save(trip).getStops().getLast());
   } //addStop
+
+  public StopResponse updateStop (Long stopId,UpdateStopRequest request,String userId) {
+    Stop stop = getStopEntity(stopId,userId);
+    stop.setName(request.getName());
+    stop.setLocation(request.getLocation());
+    stop.setNumberOfNights(request.getNumberOfNights() != null ? request.getNumberOfNights() : 1);
+    stop.setWebAddress(request.getWebAddress());
+    stop.setTelephoneNumber(request.getTelephoneNumber());
+    stop.setConfirmationCode(request.getConfirmationCode());
+    stop.setSiteNumber(request.getSiteNumber());
+    stop.setNotes(request.getNotes());
+
+    Trip trip = stop.getTrip();
+    if(trip != null) {
+      trip.recalculateDates();
+      tripRepository.save(trip);
+    } else {
+      stopRepository.save(stop);
+    }
+    return StopResponse.fromEntity(stop);
+  } //updateStop
 
   public StopResponse cloneStop (Long sourceStopId,CloneStopRequest request,String userId) {
     Stop sourceStop = getStopEntity(sourceStopId,userId);

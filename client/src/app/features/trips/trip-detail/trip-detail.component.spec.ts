@@ -48,6 +48,7 @@ describe('TripDetailComponent', () => {
       'addDepartureDayTask',
       'addReturnDayTask',
       'addStop',
+      'updateStop',
       'cloneStop',
       'deleteStop',
       'addArrivalTask',
@@ -193,6 +194,31 @@ describe('TripDetailComponent', () => {
       numberOfNights: 4
     });
     expect(component.stopToClone).toBeNull();
+    expect(tripServiceSpy.getTrip).toHaveBeenCalled();
+  });
+
+  it('should open edit modal and update stop when submitted', () => {
+    const stopToEdit = mockTripDetail.stops[0];
+    component.onOpenEditModal(stopToEdit);
+    expect(component.stopToEdit).toEqual(stopToEdit);
+
+    const updatedStopResponse = {
+      ...stopToEdit,
+      name: 'Old Faithful Lodge Updated',
+      numberOfNights: 5
+    };
+    tripServiceSpy.updateStop.and.returnValue(of(updatedStopResponse));
+
+    component.onEditStopSubmit({
+      name: 'Old Faithful Lodge Updated',
+      numberOfNights: 5
+    });
+
+    expect(tripServiceSpy.updateStop).toHaveBeenCalledWith(201, {
+      name: 'Old Faithful Lodge Updated',
+      numberOfNights: 5
+    });
+    expect(component.stopToEdit).toBeNull();
     expect(tripServiceSpy.getTrip).toHaveBeenCalled();
   });
 });

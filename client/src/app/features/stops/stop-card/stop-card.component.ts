@@ -19,6 +19,9 @@ import { TaskModalComponent } from '../../tasks/task-modal/task-modal.component'
           <div class="stop-date-badge">{{ stop.stopDate | date:'mediumDate' }} &bull; {{ stop.numberOfNights }} {{ stop.numberOfNights === 1 ? 'night' : 'nights' }}</div>
         </div>
         <div class="stop-header-actions">
+          <button type="button" class="btn-edit-stop" (click)="onEditStop()" title="Edit stop" aria-label="Edit stop">
+            ✏️ Edit
+          </button>
           <button type="button" class="btn-clone-stop" (click)="onCloneStop()" title="Clone stop" aria-label="Clone stop">
             📋 Clone
           </button>
@@ -187,7 +190,7 @@ import { TaskModalComponent } from '../../tasks/task-modal/task-modal.component'
       align-items: center;
       gap: 8px;
     }
-    .btn-clone-stop {
+    .btn-edit-stop, .btn-clone-stop {
       background: #f1f5f9;
       border: 1px solid #cbd5e1;
       border-radius: 6px;
@@ -201,7 +204,7 @@ import { TaskModalComponent } from '../../tasks/task-modal/task-modal.component'
       gap: 4px;
       transition: all 0.2s ease;
     }
-    .btn-clone-stop:hover {
+    .btn-edit-stop:hover, .btn-clone-stop:hover {
       background: #e2e8f0;
       border-color: #94a3b8;
       color: #0f172a;
@@ -380,6 +383,7 @@ export class StopCardComponent {
   @Input({ required: true }) stop!: Stop;
   @Output() deleteStop = new EventEmitter<number>();
   @Output() cloneStop = new EventEmitter<Stop>();
+  @Output() editStop = new EventEmitter<Stop>();
   @Output() addArrivalTask = new EventEmitter<{ stopId: number; description: string }>();
   @Output() addDepartureTask = new EventEmitter<{ stopId: number; description: string }>();
   @Output() taskStatusChange = new EventEmitter<{ task: Task; newStatus: TaskStatus }>();
@@ -409,6 +413,10 @@ export class StopCardComponent {
 
   get completedDepartureTasksCount(): number {
     return this.stop.departureTasks?.filter((t) => t.status === TaskStatus.COMPLETED).length || 0;
+  }
+
+  onEditStop(): void {
+    this.editStop.emit(this.stop);
   }
 
   onCloneStop(): void {

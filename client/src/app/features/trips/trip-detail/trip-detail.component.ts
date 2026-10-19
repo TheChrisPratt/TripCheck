@@ -4,12 +4,13 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { TripService } from '../../../services/trip.service';
 import { TripDetail, UpdateTripDto } from '../../../models/trip.model';
 import { Task, TaskStatus } from '../../../models/task.model';
-import { CreateStopDto, CloneStopDto, Stop } from '../../../models/stop.model';
+import { CreateStopDto, CloneStopDto, UpdateStopDto, Stop } from '../../../models/stop.model';
 import { TaskItemComponent } from '../../tasks/task-item/task-item.component';
 import { TaskModalComponent } from '../../tasks/task-modal/task-modal.component';
 import { StopCardComponent } from '../../stops/stop-card/stop-card.component';
 import { StopModalComponent } from '../../stops/stop-modal/stop-modal.component';
 import { StopCloneModalComponent } from '../../stops/stop-clone-modal/stop-clone-modal.component';
+import { StopEditModalComponent } from '../../stops/stop-edit-modal/stop-edit-modal.component';
 import { TripEditModalComponent } from '../trip-edit-modal/trip-edit-modal.component';
 
 @Component({
@@ -23,6 +24,7 @@ import { TripEditModalComponent } from '../trip-edit-modal/trip-edit-modal.compo
     StopCardComponent,
     StopModalComponent,
     StopCloneModalComponent,
+    StopEditModalComponent,
     TripEditModalComponent
   ],
   template: `
@@ -164,6 +166,7 @@ import { TripEditModalComponent } from '../trip-edit-modal/trip-edit-modal.compo
                 <app-stop-card
                   [stop]="stop"
                   (cloneStop)="onOpenCloneModal($event)"
+                  (editStop)="onOpenEditModal($event)"
                   (deleteStop)="onDeleteStop($event)"
                   (addArrivalTask)="onAddArrivalTask($event)"
                   (addDepartureTask)="onAddDepartureTask($event)"
@@ -260,6 +263,14 @@ import { TripEditModalComponent } from '../trip-edit-modal/trip-edit-modal.compo
           [sourceStop]="stopToClone"
           (stopCloned)="onCloneStopSubmit($event)"
           (modalClosed)="stopToClone = null"
+        />
+      }
+
+      @if (stopToEdit) {
+        <app-stop-edit-modal
+          [stop]="stopToEdit"
+          (stopUpdated)="onEditStopSubmit($event)"
+          (modalClosed)="stopToEdit = null"
         />
       }
 
@@ -489,6 +500,7 @@ export class TripDetailComponent implements OnInit {
   showAddStopModal = false;
   showEditTripModal = false;
   stopToClone: Stop | null = null;
+  stopToEdit: Stop | null = null;
 
   draggedState: { listType: string; index: number } | null = null;
   dragOverState: { listType: string; index: number } | null = null;
@@ -694,6 +706,23 @@ export class TripDetailComponent implements OnInit {
 
   onOpenCloneModal(stop: Stop): void {
     this.stopToClone = stop;
+  }
+
+  onOpenEditModal(stop: Stop): void {
+    this.stopToEdit = stop;
+  }
+
+  onEditStopSubmit(dto: UpdateStopDto): void {
+    if (!this.stopToEdit) return;
+    this.tripService.updateStop(this.stopToEdit.id, dto).subscribe({
+      next: () => {
+        this.stopToEdit = null;
+        if (this.trip()) {
+          this.loadTrip(this.trip()!.id);
+        }
+      },
+      error: (err) => alert(err?.error?.message || 'Failed to update stop.')
+    });
   }
 
   onCloneStopSubmit(dto: CloneStopDto): void {

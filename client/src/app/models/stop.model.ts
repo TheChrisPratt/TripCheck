@@ -28,6 +28,17 @@ export interface CreateStopDto {
   notes?: string;
 }
 
+export interface UpdateStopDto {
+  name: string;
+  location?: string;
+  numberOfNights?: number;
+  webAddress?: string;
+  telephoneNumber?: string;
+  confirmationCode?: string;
+  siteNumber?: string;
+  notes?: string;
+}
+
 export interface CloneStopDto {
   name: string;
   numberOfNights?: number;

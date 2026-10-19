@@ -8,6 +8,7 @@ import com.anodyzed.tripcheck.dto.StopResponse;
 import com.anodyzed.tripcheck.dto.TaskResponse;
 import com.anodyzed.tripcheck.dto.TripDetailResponse;
 import com.anodyzed.tripcheck.dto.TripSummaryResponse;
+import com.anodyzed.tripcheck.dto.UpdateStopRequest;
 import com.anodyzed.tripcheck.dto.UpdateTaskStatusRequest;
 import com.anodyzed.tripcheck.dto.UpdateTripRequest;
 import com.anodyzed.tripcheck.model.TaskCategory;
@@ -392,5 +393,56 @@ class TripServiceTest {
 
         // Trip ending date
         assertEquals(LocalDate.of(2026, 8, 11), refreshedTrip.getEndingDate());
+    }
+
+    @Test
+    void updateStop_updatesDetailsAndRecalculatesTripDates() {
+        TripDetailResponse trip = tripService.createTrip(
+                CreateTripRequest.builder()
+                        .name("Roadtrip To Update")
+                        .startingDate(LocalDate.of(2026, 8, 1))
+                        .build(),
+                "alice"
+        );
+
+        StopResponse stop1 = stopService.addStop(
+                trip.getId(),
+                CreateStopRequest.builder().name("Original Stop 1").location("Loc 1").numberOfNights(2).build(),
+                "alice"
+        );
+        StopResponse ignore = stopService.addStop(
+                trip.getId(),
+                CreateStopRequest.builder().name("Original Stop 2").location("Loc 2").numberOfNights(1).build(),
+                "alice"
+        );
+
+        UpdateStopRequest updateReq = UpdateStopRequest.builder()
+                .name("Updated Stop 1")
+                .location("New Location")
+                .numberOfNights(5)
+                .webAddress("https://newstop.com")
+                .telephoneNumber("555-9876")
+                .confirmationCode("CONF-123")
+                .siteNumber("Site A1")
+                .notes("Updated notes")
+                .build();
+
+        StopResponse updatedStop = stopService.updateStop(stop1.getId(), updateReq, "alice");
+
+        assertEquals(stop1.getId(), updatedStop.getId());
+        assertEquals("Updated Stop 1", updatedStop.getName());
+        assertEquals("New Location", updatedStop.getLocation());
+        assertEquals(5, updatedStop.getNumberOfNights());
+        assertEquals("https://newstop.com", updatedStop.getWebAddress());
+        assertEquals("555-9876", updatedStop.getTelephoneNumber());
+        assertEquals("CONF-123", updatedStop.getConfirmationCode());
+        assertEquals("Site A1", updatedStop.getSiteNumber());
+        assertEquals("Updated notes", updatedStop.getNotes());
+
+        TripDetailResponse refreshedTrip = tripService.getTripById(trip.getId(), "alice");
+        assertEquals(LocalDate.of(2026, 8, 1), refreshedTrip.getStops().get(0).getStopDate());
+        assertEquals(LocalDate.of(2026, 8, 6), refreshedTrip.getStops().get(1).getStopDate());
+        // Ending date: 2026-08-06 + 1 night = 2026-08-07
+        assertEquals(LocalDate.of(2026, 8, 7), refreshedTrip.getEndingDate());
     }
 }

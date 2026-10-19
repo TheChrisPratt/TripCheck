@@ -89,4 +89,13 @@ describe('StopCardComponent', () => {
 
     expect(component.cloneStop.emit).toHaveBeenCalledWith(component.stop);
   });
+
+  it('should emit editStop when edit button is clicked', () => {
+    spyOn(component.editStop, 'emit');
+    const editBtn = fixture.nativeElement.querySelector('.btn-edit-stop') as HTMLButtonElement;
+    expect(editBtn).toBeTruthy();
+    editBtn.click();
+
+    expect(component.editStop.emit).toHaveBeenCalledWith(component.stop);
+  });
 });

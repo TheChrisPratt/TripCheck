@@ -142,4 +142,38 @@ describe('TripService', () => {
     expect(req.request.body).toEqual(cloneDto);
     req.flush(mockStopResponse);
   });
+
+  it('should update stop', () => {
+    const updateDto = {
+      name: 'Yosemite Updated',
+      numberOfNights: 4,
+      location: 'Yosemite Valley',
+      telephoneNumber: '555-9999',
+      confirmationCode: 'RES-888',
+      siteNumber: 'Site 12',
+      notes: 'Updated notes',
+      webAddress: 'https://nps.gov/yose'
+    };
+
+    const mockStopResponse = {
+      id: 1,
+      name: 'Yosemite Updated',
+      stopDate: '2026-07-08',
+      numberOfNights: 4,
+      orderIndex: 0,
+      arrivalTasks: [],
+      departureTasks: []
+    };
+
+    service.updateStop(1, updateDto).subscribe((stop) => {
+      expect(stop.id).toBe(1);
+      expect(stop.name).toBe('Yosemite Updated');
+      expect(stop.numberOfNights).toBe(4);
+    });
+
+    const req = httpTesting.expectOne('api/stops/1');
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.body).toEqual(updateDto);
+    req.flush(mockStopResponse);
+  });
 });
