@@ -38,6 +38,18 @@ import { TaskModalComponent } from '../../tasks/task-modal/task-modal.component'
             <span class="detail-value">{{ stop.location }}</span>
           </div>
         }
+        @if (stop.checkinTime) {
+          <div class="detail-item">
+            <span class="detail-label">Check-in:</span>
+            <span class="detail-value">{{ formatTime(stop.checkinTime) }}</span>
+          </div>
+        }
+        @if (stop.checkoutTime) {
+          <div class="detail-item">
+            <span class="detail-label">Check-out:</span>
+            <span class="detail-value">{{ formatTime(stop.checkoutTime) }}</span>
+          </div>
+        }
         @if (stop.telephoneNumber) {
           <div class="detail-item">
             <span class="detail-label">Phone:</span>
@@ -60,6 +72,42 @@ import { TaskModalComponent } from '../../tasks/task-modal/task-modal.component'
           <div class="detail-item">
             <span class="detail-label">Site / Room:</span>
             <span class="detail-value">{{ stop.siteNumber }}</span>
+          </div>
+        }
+        @if (stop.codes) {
+          <div class="detail-item full-width">
+            <span class="detail-label">Codes:</span>
+            <span class="codes-badge">{{ stop.codes }}</span>
+          </div>
+        }
+        @if (stop.hookups && stop.hookups.length > 0) {
+          <div class="detail-item full-width">
+            <span class="detail-label">Hookups:</span>
+            <div class="hookup-badges">
+              @for (hookup of stop.hookups; track hookup) {
+                <span class="hookup-badge">{{ hookup }}</span>
+              }
+            </div>
+          </div>
+        }
+        @if (stop.amenities && stop.amenities.length > 0) {
+          <div class="detail-item full-width">
+            <span class="detail-label">Amenities:</span>
+            <div class="tag-chips-list">
+              @for (amenity of stop.amenities; track amenity) {
+                <span class="feature-chip amenity-chip">{{ amenity }}</span>
+              }
+            </div>
+          </div>
+        }
+        @if (stop.services && stop.services.length > 0) {
+          <div class="detail-item full-width">
+            <span class="detail-label">Services:</span>
+            <div class="tag-chips-list">
+              @for (service of stop.services; track service) {
+                <span class="feature-chip service-chip">{{ service }}</span>
+              }
+            </div>
           </div>
         }
       </div>
@@ -280,6 +328,63 @@ import { TaskModalComponent } from '../../tasks/task-modal/task-modal.component'
       font-family: monospace;
       font-size: 0.85rem;
       color: #0f172a;
+    }
+    .full-width {
+      grid-column: 1 / -1;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+    }
+    .hookup-badges {
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .hookup-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border-radius: 4px;
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+    }
+    .codes-badge {
+      display: inline-block;
+      padding: 3px 8px;
+      font-size: 0.825rem;
+      font-family: monospace, ui-monospace, sans-serif;
+      font-weight: 600;
+      border-radius: 4px;
+      background: #fef3c7;
+      color: #92400e;
+      border: 1px solid #fde68a;
+    }
+    .tag-chips-list {
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .feature-chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      border-radius: 9999px;
+    }
+    .amenity-chip {
+      background: #ecfdf5;
+      color: #047857;
+      border: 1px solid #a7f3d0;
+    }
+    .service-chip {
+      background: #f5f3ff;
+      color: #6d28d9;
+      border: 1px solid #ddd6fe;
     }
     .stop-notes {
       background: #f8fafc;
@@ -513,5 +618,18 @@ export class StopCardComponent {
 
   onTaskDelete(task: Task): void {
     this.taskDelete.emit(task);
+  }
+
+  formatTime (timeStr?: string): string {
+    if(!timeStr) return '';
+    const parts = timeStr.split(':');
+    if(parts.length < 2) return timeStr;
+    let hours = parseInt(parts[0], 10);
+    const minutes = parts[1];
+    if(isNaN(hours)) return timeStr;
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    return `${hours}:${minutes} ${ampm}`;
   }
 }

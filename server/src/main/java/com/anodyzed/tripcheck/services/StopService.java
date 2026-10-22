@@ -4,16 +4,24 @@ import com.anodyzed.tripcheck.dto.CloneStopRequest;
 import com.anodyzed.tripcheck.dto.CreateStopRequest;
 import com.anodyzed.tripcheck.dto.StopResponse;
 import com.anodyzed.tripcheck.dto.UpdateStopRequest;
+import com.anodyzed.tripcheck.model.Amenity;
 import com.anodyzed.tripcheck.model.Stop;
+import com.anodyzed.tripcheck.model.StopServiceCatalog;
 import com.anodyzed.tripcheck.model.Task;
 import com.anodyzed.tripcheck.model.TaskStatus;
 import com.anodyzed.tripcheck.model.Trip;
+import com.anodyzed.tripcheck.repository.AmenityRepository;
 import com.anodyzed.tripcheck.repository.StopRepository;
+import com.anodyzed.tripcheck.repository.StopServiceCatalogRepository;
 import com.anodyzed.tripcheck.repository.TripRepository;
 import com.anodyzed.tripcheck.util.exception.ResourceNotFoundException;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 @Service
 @Transactional
@@ -22,15 +30,70 @@ public class StopService {
   private final StopRepository stopRepository;
   private final TripService tripService;
   private final TripRepository tripRepository;
+  private final AmenityRepository amenityRepository;
+  private final StopServiceCatalogRepository stopServiceCatalogRepository;
 
-  public StopService (StopRepository stopRepository,TripService tripService,TripRepository tripRepository) {
+  public StopService (
+    StopRepository stopRepository,
+    TripService tripService,
+    TripRepository tripRepository,
+    AmenityRepository amenityRepository,
+    StopServiceCatalogRepository stopServiceCatalogRepository
+  ) {
     this.stopRepository = stopRepository;
     this.tripService = tripService;
     this.tripRepository = tripRepository;
+    this.amenityRepository = amenityRepository;
+    this.stopServiceCatalogRepository = stopServiceCatalogRepository;
   } //StopService
+
+  private void registerAmenities (Set<String> amenities) {
+    if(amenities == null || amenities.isEmpty()) {
+      return;
+    }
+    for(String raw : amenities) {
+      if(raw != null) {
+        String trimmed = raw.trim();
+        if(!trimmed.isEmpty() && !amenityRepository.existsByNameIgnoreCase(trimmed)) {
+          amenityRepository.save(new Amenity(trimmed));
+        }
+      }
+    }
+  } //registerAmenities
+
+  private void registerServices (Set<String> services) {
+    if(services == null || services.isEmpty()) {
+      return;
+    }
+    for(String raw : services) {
+      if(raw != null) {
+        String trimmed = raw.trim();
+        if(!trimmed.isEmpty() && !stopServiceCatalogRepository.existsByNameIgnoreCase(trimmed)) {
+          stopServiceCatalogRepository.save(new StopServiceCatalog(trimmed));
+        }
+      }
+    }
+  } //registerServices
+
+  @Transactional(readOnly=true)
+  public List<String> getAllAmenities () {
+    return amenityRepository.findAllByOrderByNameAsc().stream()
+      .map(Amenity::getName)
+      .toList();
+  } //getAllAmenities
+
+  @Transactional(readOnly=true)
+  public List<String> getAllServices () {
+    return stopServiceCatalogRepository.findAllByOrderByNameAsc().stream()
+      .map(StopServiceCatalog::getName)
+      .toList();
+  } //getAllServices
 
   public StopResponse addStop (Long tripId,CreateStopRequest request,String userId) {
     Trip trip = tripService.getTripEntity(tripId,userId);
+
+    registerAmenities(request.getAmenities());
+    registerServices(request.getServices());
 
     Stop stop = Stop.builder()
       .name(request.getName())
@@ -41,6 +104,12 @@ public class StopService {
       .confirmationCode(request.getConfirmationCode())
       .siteNumber(request.getSiteNumber())
       .notes(request.getNotes())
+      .hookups(request.getHookups() != null ? new HashSet<>(request.getHookups()) : new HashSet<>())
+      .checkinTime(request.getCheckinTime())
+      .checkoutTime(request.getCheckoutTime())
+      .amenities(request.getAmenities() != null ? new HashSet<>(request.getAmenities()) : new HashSet<>())
+      .services(request.getServices() != null ? new HashSet<>(request.getServices()) : new HashSet<>())
+      .codes(request.getCodes())
       .build();
 
     trip.addStop(stop);
@@ -49,6 +118,10 @@ public class StopService {
 
   public StopResponse updateStop (Long stopId,UpdateStopRequest request,String userId) {
     Stop stop = getStopEntity(stopId,userId);
+
+    registerAmenities(request.getAmenities());
+    registerServices(request.getServices());
+
     stop.setName(request.getName());
     stop.setLocation(request.getLocation());
     stop.setNumberOfNights(request.getNumberOfNights() != null ? request.getNumberOfNights() : 1);
@@ -57,6 +130,12 @@ public class StopService {
     stop.setConfirmationCode(request.getConfirmationCode());
     stop.setSiteNumber(request.getSiteNumber());
     stop.setNotes(request.getNotes());
+    stop.setHookups(request.getHookups() != null ? new HashSet<>(request.getHookups()) : new HashSet<>());
+    stop.setCheckinTime(request.getCheckinTime());
+    stop.setCheckoutTime(request.getCheckoutTime());
+    stop.setAmenities(request.getAmenities() != null ? new HashSet<>(request.getAmenities()) : new HashSet<>());
+    stop.setServices(request.getServices() != null ? new HashSet<>(request.getServices()) : new HashSet<>());
+    stop.setCodes(request.getCodes());
 
     Trip trip = stop.getTrip();
     if(trip != null) {
@@ -75,6 +154,9 @@ public class StopService {
       throw new ResourceNotFoundException("Trip not found for stop id: " + sourceStopId);
     }
 
+    registerAmenities(request.getAmenities());
+    registerServices(request.getServices());
+
     Stop clonedStop = Stop.builder()
       .name(request.getName())
       .location(request.getLocation())
@@ -85,6 +167,12 @@ public class StopService {
       .siteNumber(request.getSiteNumber())
       .notes(request.getNotes())
       .stopDate(request.getStopDate())
+      .hookups(request.getHookups() != null ? new HashSet<>(request.getHookups()) : (sourceStop.getHookups() != null ? new HashSet<>(sourceStop.getHookups()) : new HashSet<>()))
+      .checkinTime(request.getCheckinTime() != null ? request.getCheckinTime() : sourceStop.getCheckinTime())
+      .checkoutTime(request.getCheckoutTime() != null ? request.getCheckoutTime() : sourceStop.getCheckoutTime())
+      .amenities(request.getAmenities() != null ? new HashSet<>(request.getAmenities()) : (sourceStop.getAmenities() != null ? new HashSet<>(sourceStop.getAmenities()) : new HashSet<>()))
+      .services(request.getServices() != null ? new HashSet<>(request.getServices()) : (sourceStop.getServices() != null ? new HashSet<>(sourceStop.getServices()) : new HashSet<>()))
+      .codes(request.getCodes() != null ? request.getCodes() : sourceStop.getCodes())
       .build();
 
     if(sourceStop.getTasks() != null) {

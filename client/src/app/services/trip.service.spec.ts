@@ -176,4 +176,30 @@ describe('TripService', () => {
     expect(req.request.body).toEqual(updateDto);
     req.flush(mockStopResponse);
   });
+
+  it('should get amenities list', () => {
+    const mockAmenities = ['Scenic View', 'Trails', 'Water Access'];
+
+    service.getAmenities().subscribe((amenities) => {
+      expect(amenities.length).toBe(3);
+      expect(amenities).toEqual(mockAmenities);
+    });
+
+    const req = httpTesting.expectOne('api/stops/amenities');
+    expect(req.request.method).toBe('GET');
+    req.flush(mockAmenities);
+  });
+
+  it('should get services list', () => {
+    const mockServices = ['Firewood', 'Laundry', 'Propane'];
+
+    service.getServices().subscribe((services) => {
+      expect(services.length).toBe(3);
+      expect(services).toEqual(mockServices);
+    });
+
+    const req = httpTesting.expectOne('api/stops/services');
+    expect(req.request.method).toBe('GET');
+    req.flush(mockServices);
+  });
 });

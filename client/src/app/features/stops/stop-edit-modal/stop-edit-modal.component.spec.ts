@@ -1,10 +1,13 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
+import { of } from 'rxjs';
 import { StopEditModalComponent } from './stop-edit-modal.component';
+import { TripService } from '../../../services/trip.service';
 
 describe('StopEditModalComponent', () => {
   let component: StopEditModalComponent;
   let fixture: ComponentFixture<StopEditModalComponent>;
+  let tripServiceSpy: jasmine.SpyObj<TripService>;
 
   const mockStop = {
     id: 1,
@@ -18,13 +21,26 @@ describe('StopEditModalComponent', () => {
     siteNumber: 'Site A12',
     notes: 'Arrive early for parking',
     orderIndex: 0,
+    checkinTime: '15:00',
+    checkoutTime: '11:00',
+    hookups: ['Electric', 'Water'],
+    amenities: ['Trails', 'Scenic View'],
+    services: ['Laundry'],
+    codes: 'Gate: #1234',
     arrivalTasks: [],
     departureTasks: []
   };
 
   beforeEach(async () => {
+    tripServiceSpy = jasmine.createSpyObj('TripService', ['getAmenities', 'getServices']);
+    tripServiceSpy.getAmenities.and.returnValue(of(['Scenic View', 'Trails', 'Water Access']));
+    tripServiceSpy.getServices.and.returnValue(of(['Laundry', 'Propane']));
+
     await TestBed.configureTestingModule({
-      imports: [StopEditModalComponent]
+      imports: [StopEditModalComponent],
+      providers: [
+        { provide: TripService, useValue: tripServiceSpy }
+      ]
     }).compileComponents();
 
     fixture = TestBed.createComponent(StopEditModalComponent);
@@ -40,7 +56,7 @@ describe('StopEditModalComponent', () => {
     expect(firstInput.nativeElement.hasAttribute('autofocus')).toBeTrue();
   });
 
-  it('should pre-populate form fields from existing stop', () => {
+  it('should pre-populate form fields from existing stop including extended fields', () => {
     expect(component.stopData.name).toBe('Old Faithful Geyser');
     expect(component.stopData.numberOfNights).toBe(3);
     expect(component.stopData.location).toBe('Yellowstone National Park');
@@ -49,6 +65,13 @@ describe('StopEditModalComponent', () => {
     expect(component.stopData.confirmationCode).toBe('CONF-111');
     expect(component.stopData.siteNumber).toBe('Site A12');
     expect(component.stopData.notes).toBe('Arrive early for parking');
+    expect(component.stopData.checkinTime).toBe('15:00');
+    expect(component.stopData.checkoutTime).toBe('11:00');
+    expect(component.stopData.codes).toBe('Gate: #1234');
+    expect(component.selectedHookups.has('Electric')).toBeTrue();
+    expect(component.selectedHookups.has('Water')).toBeTrue();
+    expect(component.amenitiesList).toEqual(['Trails', 'Scenic View']);
+    expect(component.servicesList).toEqual(['Laundry']);
   });
 
   it('should emit stopUpdated with trimmed name and modified values when valid', () => {
@@ -61,8 +84,14 @@ describe('StopEditModalComponent', () => {
       telephoneNumber: '555-4321',
       confirmationCode: 'CONF-333',
       siteNumber: 'Site B10',
-      notes: 'Updated notes'
+      notes: 'Updated notes',
+      checkinTime: '16:00',
+      checkoutTime: '10:00',
+      codes: 'Lockbox: 9999'
     };
+    component.toggleHookup('Sewer');
+    component.amenitiesList = ['Trails', 'Water Access'];
+    component.servicesList = ['Laundry', 'Propane'];
 
     component.onSubmit();
 
@@ -74,7 +103,13 @@ describe('StopEditModalComponent', () => {
       telephoneNumber: '555-4321',
       confirmationCode: 'CONF-333',
       siteNumber: 'Site B10',
-      notes: 'Updated notes'
+      notes: 'Updated notes',
+      checkinTime: '16:00',
+      checkoutTime: '10:00',
+      codes: 'Lockbox: 9999',
+      hookups: ['Electric', 'Water', 'Sewer'],
+      amenities: ['Trails', 'Water Access'],
+      services: ['Laundry', 'Propane']
     });
   });
 

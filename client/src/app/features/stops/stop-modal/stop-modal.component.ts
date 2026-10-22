@@ -1,18 +1,20 @@
-import { Component, EventEmitter, Output } from '@angular/core';
+import { Component, EventEmitter, OnInit, Output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CreateStopDto } from '../../../models/stop.model';
+import { TripService } from '../../../services/trip.service';
+import { TagInputComponent } from '../tag-input/tag-input.component';
 
 @Component({
   selector: 'app-stop-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TagInputComponent],
   template: `
     <div class="modal-backdrop" (click)="onCancel()">
       <div class="modal-content" (click)="$event.stopPropagation()">
         <div class="modal-header">
           <h3>Add New Stop</h3>
-          <button type="button" class="close-btn" (click)="onCancel()">&times;</button>
+          <button type="button" class="close-btn" (click)="onCancel()" aria-label="Close modal">&times;</button>
         </div>
         <form (ngSubmit)="onSubmit()">
           <div class="form-row">
@@ -53,6 +55,47 @@ import { CreateStopDto } from '../../../models/stop.model';
               placeholder="e.g. Arizona, US"
               class="form-input"
             />
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="stopCheckin">Check-in Time</label>
+              <input
+                id="stopCheckin"
+                type="time"
+                name="checkinTime"
+                [(ngModel)]="stopData.checkinTime"
+                class="form-input"
+              />
+            </div>
+            <div class="form-group flex-1">
+              <label for="stopCheckout">Check-out Time</label>
+              <input
+                id="stopCheckout"
+                type="time"
+                name="checkoutTime"
+                [(ngModel)]="stopData.checkoutTime"
+                class="form-input"
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Hookups</label>
+            <div class="hookups-group">
+              <label
+                *ngFor="let hookup of hookupOptions"
+                class="hookup-checkbox-label"
+                [class.selected]="selectedHookups.has(hookup)"
+              >
+                <input
+                  type="checkbox"
+                  [checked]="selectedHookups.has(hookup)"
+                  (change)="toggleHookup(hookup)"
+                />
+                {{ hookup }}
+              </label>
+            </div>
           </div>
 
           <div class="form-row">
@@ -106,13 +149,46 @@ import { CreateStopDto } from '../../../models/stop.model';
           </div>
 
           <div class="form-group">
+            <label for="stopCodes">Codes (Gate, Lockbox, WiFi)</label>
+            <input
+              id="stopCodes"
+              type="text"
+              maxlength="128"
+              name="codes"
+              [(ngModel)]="stopData.codes"
+              placeholder="e.g. Gate: #1234, WiFi: CanyonView, Keybox: 5678"
+              class="form-input"
+            />
+          </div>
+
+          <div class="form-group">
+            <app-tag-input
+              [label]="'Amenities'"
+              [placeholder]="'Add amenity (e.g. Trails, River Access)...'"
+              [inputId]="'stop-amenities-input'"
+              [suggestions]="amenitySuggestions"
+              [(tags)]="amenitiesList"
+            />
+          </div>
+
+          <div class="form-group">
+            <app-tag-input
+              [label]="'Services'"
+              [placeholder]="'Add service (e.g. Propane, Laundry)...'"
+              [inputId]="'stop-services-input'"
+              [suggestions]="serviceSuggestions"
+              [(tags)]="servicesList"
+            />
+          </div>
+
+          <div class="form-group">
             <label for="stopNotes">Notes</label>
             <textarea
               id="stopNotes"
               rows="3"
               name="notes"
               [(ngModel)]="stopData.notes"
-              placeholder="Check-in times, gate codes, amenities..."
+              placeholder="Directions, site notes, reminders..."
               class="form-input textarea"
             ></textarea>
           </div>
@@ -145,7 +221,7 @@ import { CreateStopDto } from '../../../models/stop.model';
       background: #ffffff;
       border-radius: 12px;
       width: 90%;
-      max-width: 580px;
+      max-width: 620px;
       max-height: 90vh;
       overflow-y: auto;
       padding: 24px;
@@ -190,6 +266,39 @@ import { CreateStopDto } from '../../../models/stop.model';
       font-weight: 500;
       color: #334155;
       margin-bottom: 6px;
+    }
+    .hookups-group {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .hookup-checkbox-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.875rem;
+      color: #334155;
+      cursor: pointer;
+      background: #f8fafc;
+      padding: 6px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      user-select: none;
+      transition: all 0.15s ease;
+    }
+    .hookup-checkbox-label:hover {
+      background: #f1f5f9;
+    }
+    .hookup-checkbox-label.selected {
+      background: #eff6ff;
+      border-color: #3b82f6;
+      color: #1d4ed8;
+      font-weight: 500;
+    }
+    .hookup-checkbox-label input[type="checkbox"] {
+      accent-color: #2563eb;
+      cursor: pointer;
     }
     .form-input {
       width: 100%;
@@ -243,9 +352,18 @@ import { CreateStopDto } from '../../../models/stop.model';
     }
   `]
 })
-export class StopModalComponent {
+export class StopModalComponent implements OnInit {
+  private tripService = inject(TripService);
+
   @Output() stopSubmitted = new EventEmitter<CreateStopDto>();
   @Output() modalClosed = new EventEmitter<void>();
+
+  readonly hookupOptions = ['Electric', 'Water', 'Sewer'];
+  selectedHookups: Set<string> = new Set();
+  amenitiesList: string[] = [];
+  servicesList: string[] = [];
+  amenitySuggestions: string[] = [];
+  serviceSuggestions: string[] = [];
 
   stopData: CreateStopDto = {
     name: '',
@@ -255,14 +373,44 @@ export class StopModalComponent {
     telephoneNumber: '',
     confirmationCode: '',
     siteNumber: '',
-    notes: ''
+    notes: '',
+    checkinTime: '',
+    checkoutTime: '',
+    codes: ''
   };
+
+  ngOnInit(): void {
+    this.tripService.getAmenities().subscribe({
+      next: (amenities) => {
+        this.amenitySuggestions = amenities || [];
+      },
+      error: () => {}
+    });
+
+    this.tripService.getServices().subscribe({
+      next: (services) => {
+        this.serviceSuggestions = services || [];
+      },
+      error: () => {}
+    });
+  }
+
+  toggleHookup(hookup: string): void {
+    if (this.selectedHookups.has(hookup)) {
+      this.selectedHookups.delete(hookup);
+    } else {
+      this.selectedHookups.add(hookup);
+    }
+  }
 
   onSubmit(): void {
     if (this.stopData.name.trim()) {
       this.stopSubmitted.emit({
         ...this.stopData,
-        name: this.stopData.name.trim()
+        name: this.stopData.name.trim(),
+        hookups: Array.from(this.selectedHookups),
+        amenities: this.amenitiesList,
+        services: this.servicesList
       });
     }
   }

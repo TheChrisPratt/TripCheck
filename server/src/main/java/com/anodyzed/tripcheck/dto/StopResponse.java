@@ -1,5 +1,6 @@
 package com.anodyzed.tripcheck.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -9,8 +10,11 @@ import lombok.Setter;
 import com.anodyzed.tripcheck.model.Stop;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -30,6 +34,23 @@ public class StopResponse {
   private String notes;
   private Integer orderIndex;
   private Long tripId;
+
+  @Builder.Default
+  private Set<String> hookups = new HashSet<>();
+
+  @JsonFormat(pattern="HH:mm")
+  private LocalTime checkinTime;
+
+  @JsonFormat(pattern="HH:mm")
+  private LocalTime checkoutTime;
+
+  @Builder.Default
+  private Set<String> amenities = new HashSet<>();
+
+  @Builder.Default
+  private Set<String> services = new HashSet<>();
+
+  private String codes;
 
   @Builder.Default
   private List<TaskResponse> arrivalTasks = new ArrayList<>();
@@ -54,6 +75,12 @@ public class StopResponse {
       .notes(stop.getNotes())
       .orderIndex(stop.getOrderIndex())
       .tripId(stop.getTrip() != null ? stop.getTrip().getId() : null)
+      .hookups(stop.getHookups() != null ? new HashSet<>(stop.getHookups()) : new HashSet<>())
+      .checkinTime(stop.getCheckinTime())
+      .checkoutTime(stop.getCheckoutTime())
+      .amenities(stop.getAmenities() != null ? new HashSet<>(stop.getAmenities()) : new HashSet<>())
+      .services(stop.getServices() != null ? new HashSet<>(stop.getServices()) : new HashSet<>())
+      .codes(stop.getCodes())
       .arrivalTasks(stop.getArrivalTasks() != null
         ? stop.getArrivalTasks().stream().map(TaskResponse::fromEntity).toList()
         : new ArrayList<>())

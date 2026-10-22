@@ -22,6 +22,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/stops")
 public class StopResource {
@@ -37,6 +39,16 @@ public class StopResource {
   private String getUserId (Authentication authentication) {
     return authentication != null ? authentication.getName() : null;
   } //getUserId
+
+  @GetMapping("/amenities")
+  public ResponseEntity<List<String>> getAmenities () {
+    return ResponseEntity.ok(stopService.getAllAmenities());
+  } //getAmenities
+
+  @GetMapping("/services")
+  public ResponseEntity<List<String>> getServices () {
+    return ResponseEntity.ok(stopService.getAllServices());
+  } //getServices
 
   @GetMapping("/{stopId}")
   public ResponseEntity<StopResponse> getStop (

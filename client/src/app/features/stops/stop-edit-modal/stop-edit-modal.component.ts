@@ -1,12 +1,14 @@
-import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Stop, UpdateStopDto } from '../../../models/stop.model';
+import { TripService } from '../../../services/trip.service';
+import { TagInputComponent } from '../tag-input/tag-input.component';
 
 @Component({
   selector: 'app-stop-edit-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TagInputComponent],
   template: `
     <div class="modal-backdrop" (click)="onCancel()">
       <div class="modal-content" (click)="$event.stopPropagation()">
@@ -54,6 +56,47 @@ import { Stop, UpdateStopDto } from '../../../models/stop.model';
                 placeholder="e.g. Arizona, US"
                 class="form-input"
               />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="editStopCheckin">Check-in Time</label>
+              <input
+                id="editStopCheckin"
+                type="time"
+                name="checkinTime"
+                [(ngModel)]="stopData.checkinTime"
+                class="form-input"
+              />
+            </div>
+            <div class="form-group flex-1">
+              <label for="editStopCheckout">Check-out Time</label>
+              <input
+                id="editStopCheckout"
+                type="time"
+                name="checkoutTime"
+                [(ngModel)]="stopData.checkoutTime"
+                class="form-input"
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Hookups</label>
+            <div class="hookups-group">
+              <label
+                *ngFor="let hookup of hookupOptions"
+                class="hookup-checkbox-label"
+                [class.selected]="selectedHookups.has(hookup)"
+              >
+                <input
+                  type="checkbox"
+                  [checked]="selectedHookups.has(hookup)"
+                  (change)="toggleHookup(hookup)"
+                />
+                {{ hookup }}
+              </label>
             </div>
           </div>
 
@@ -108,6 +151,39 @@ import { Stop, UpdateStopDto } from '../../../models/stop.model';
           </div>
 
           <div class="form-group">
+            <label for="editStopCodes">Codes (Gate, Lockbox, WiFi)</label>
+            <input
+              id="editStopCodes"
+              type="text"
+              maxlength="128"
+              name="codes"
+              [(ngModel)]="stopData.codes"
+              placeholder="e.g. Gate: #1234, WiFi: CanyonView, Keybox: 5678"
+              class="form-input"
+            />
+          </div>
+
+          <div class="form-group">
+            <app-tag-input
+              [label]="'Amenities'"
+              [placeholder]="'Add amenity (e.g. Trails, River Access)...'"
+              [inputId]="'edit-stop-amenities-input'"
+              [suggestions]="amenitySuggestions"
+              [(tags)]="amenitiesList"
+            />
+          </div>
+
+          <div class="form-group">
+            <app-tag-input
+              [label]="'Services'"
+              [placeholder]="'Add service (e.g. Propane, Laundry)...'"
+              [inputId]="'edit-stop-services-input'"
+              [suggestions]="serviceSuggestions"
+              [(tags)]="servicesList"
+            />
+          </div>
+
+          <div class="form-group">
             <label for="editStopNotes">Notes &amp; Details</label>
             <textarea
               id="editStopNotes"
@@ -149,7 +225,7 @@ import { Stop, UpdateStopDto } from '../../../models/stop.model';
       border-radius: 12px;
       box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
       width: 100%;
-      max-width: 520px;
+      max-width: 620px;
       padding: 24px;
       box-sizing: border-box;
       max-height: 90vh;
@@ -199,6 +275,39 @@ import { Stop, UpdateStopDto } from '../../../models/stop.model';
       font-weight: 500;
       color: #334155;
       margin-bottom: 6px;
+    }
+    .hookups-group {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .hookup-checkbox-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.875rem;
+      color: #334155;
+      cursor: pointer;
+      background: #f8fafc;
+      padding: 6px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      user-select: none;
+      transition: all 0.15s ease;
+    }
+    .hookup-checkbox-label:hover {
+      background: #f1f5f9;
+    }
+    .hookup-checkbox-label.selected {
+      background: #eff6ff;
+      border-color: #3b82f6;
+      color: #1d4ed8;
+      font-weight: 500;
+    }
+    .hookup-checkbox-label input[type="checkbox"] {
+      accent-color: #2563eb;
+      cursor: pointer;
     }
     .form-input {
       width: 100%;
@@ -253,9 +362,18 @@ import { Stop, UpdateStopDto } from '../../../models/stop.model';
   `]
 })
 export class StopEditModalComponent implements OnInit {
+  private tripService = inject(TripService);
+
   @Input({ required: true }) stop!: Stop;
   @Output() stopUpdated = new EventEmitter<UpdateStopDto>();
   @Output() modalClosed = new EventEmitter<void>();
+
+  readonly hookupOptions = ['Electric', 'Water', 'Sewer'];
+  selectedHookups: Set<string> = new Set();
+  amenitiesList: string[] = [];
+  servicesList: string[] = [];
+  amenitySuggestions: string[] = [];
+  serviceSuggestions: string[] = [];
 
   stopData: UpdateStopDto = {
     name: '',
@@ -265,7 +383,10 @@ export class StopEditModalComponent implements OnInit {
     telephoneNumber: '',
     confirmationCode: '',
     siteNumber: '',
-    notes: ''
+    notes: '',
+    checkinTime: '',
+    checkoutTime: '',
+    codes: ''
   };
 
   ngOnInit(): void {
@@ -278,8 +399,36 @@ export class StopEditModalComponent implements OnInit {
         telephoneNumber: this.stop.telephoneNumber || '',
         confirmationCode: this.stop.confirmationCode || '',
         siteNumber: this.stop.siteNumber || '',
-        notes: this.stop.notes || ''
+        notes: this.stop.notes || '',
+        checkinTime: this.stop.checkinTime || '',
+        checkoutTime: this.stop.checkoutTime || '',
+        codes: this.stop.codes || ''
       };
+      this.selectedHookups = new Set(this.stop.hookups || []);
+      this.amenitiesList = this.stop.amenities ? [...this.stop.amenities] : [];
+      this.servicesList = this.stop.services ? [...this.stop.services] : [];
+    }
+
+    this.tripService.getAmenities().subscribe({
+      next: (amenities) => {
+        this.amenitySuggestions = amenities || [];
+      },
+      error: () => {}
+    });
+
+    this.tripService.getServices().subscribe({
+      next: (services) => {
+        this.serviceSuggestions = services || [];
+      },
+      error: () => {}
+    });
+  }
+
+  toggleHookup(hookup: string): void {
+    if (this.selectedHookups.has(hookup)) {
+      this.selectedHookups.delete(hookup);
+    } else {
+      this.selectedHookups.add(hookup);
     }
   }
 
@@ -287,7 +436,10 @@ export class StopEditModalComponent implements OnInit {
     if (this.stopData.name.trim()) {
       this.stopUpdated.emit({
         ...this.stopData,
-        name: this.stopData.name.trim()
+        name: this.stopData.name.trim(),
+        hookups: Array.from(this.selectedHookups),
+        amenities: this.amenitiesList,
+        services: this.servicesList
       });
     }
   }

@@ -13,6 +13,12 @@ export interface Stop {
   notes?: string;
   orderIndex: number;
   tripId?: number;
+  hookups?: string[];
+  checkinTime?: string;
+  checkoutTime?: string;
+  amenities?: string[];
+  services?: string[];
+  codes?: string;
   arrivalTasks: Task[];
   departureTasks: Task[];
 }
@@ -26,6 +32,12 @@ export interface CreateStopDto {
   confirmationCode?: string;
   siteNumber?: string;
   notes?: string;
+  hookups?: string[];
+  checkinTime?: string;
+  checkoutTime?: string;
+  amenities?: string[];
+  services?: string[];
+  codes?: string;
 }
 
 export interface UpdateStopDto {
@@ -37,6 +49,12 @@ export interface UpdateStopDto {
   confirmationCode?: string;
   siteNumber?: string;
   notes?: string;
+  hookups?: string[];
+  checkinTime?: string;
+  checkoutTime?: string;
+  amenities?: string[];
+  services?: string[];
+  codes?: string;
 }
 
 export interface CloneStopDto {
@@ -49,4 +67,10 @@ export interface CloneStopDto {
   siteNumber?: string;
   stopDate?: string;
   webAddress?: string;
+  hookups?: string[];
+  checkinTime?: string;
+  checkoutTime?: string;
+  amenities?: string[];
+  services?: string[];
+  codes?: string;
 }

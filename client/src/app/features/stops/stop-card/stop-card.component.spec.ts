@@ -28,6 +28,12 @@ describe('StopCardComponent', () => {
       stopDate: '2026-07-05',
       numberOfNights: 2,
       orderIndex: 0,
+      checkinTime: '15:00',
+      checkoutTime: '11:00',
+      hookups: ['Electric', 'Water'],
+      amenities: ['Trails', 'Scenic View'],
+      services: ['Laundry', 'Propane'],
+      codes: 'Gate: #1234, WiFi: Yose2026',
       arrivalTasks: [
         { id: 10, description: 'Check into campsite', status: TaskStatus.INCOMPLETE, category: TaskCategory.ARRIVAL, orderIndex: 0 },
         { id: 11, description: 'Set up camp stove', status: TaskStatus.INCOMPLETE, category: TaskCategory.ARRIVAL, orderIndex: 1 }
@@ -42,6 +48,33 @@ describe('StopCardComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('.stop-name')?.textContent).toContain('Yosemite Valley');
     expect(compiled.textContent).toContain('2 nights');
+  });
+
+  it('should render extended stop fields: times, hookups, codes, amenities, and services', () => {
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    expect(compiled.textContent).toContain('Check-in:');
+    expect(compiled.textContent).toContain('3:00 PM');
+    expect(compiled.textContent).toContain('Check-out:');
+    expect(compiled.textContent).toContain('11:00 AM');
+
+    const hookupBadges = compiled.querySelectorAll('.hookup-badge');
+    expect(hookupBadges.length).toBe(2);
+    expect(hookupBadges[0].textContent).toContain('Electric');
+    expect(hookupBadges[1].textContent).toContain('Water');
+
+    const codesBadge = compiled.querySelector('.codes-badge');
+    expect(codesBadge?.textContent).toContain('Gate: #1234, WiFi: Yose2026');
+
+    const amenityChips = compiled.querySelectorAll('.amenity-chip');
+    expect(amenityChips.length).toBe(2);
+    expect(amenityChips[0].textContent).toContain('Trails');
+    expect(amenityChips[1].textContent).toContain('Scenic View');
+
+    const serviceChips = compiled.querySelectorAll('.service-chip');
+    expect(serviceChips.length).toBe(2);
+    expect(serviceChips[0].textContent).toContain('Laundry');
+    expect(serviceChips[1].textContent).toContain('Propane');
   });
 
   it('should calculate completed arrival tasks count', () => {

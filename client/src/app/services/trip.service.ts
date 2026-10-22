@@ -50,6 +50,14 @@ export class TripService {
     return this.http.delete<void>(`${this.stopUrl}/${stopId}`);
   }
 
+  getAmenities(): Observable<string[]> {
+    return this.http.get<string[]>(`${this.stopUrl}/amenities`);
+  }
+
+  getServices(): Observable<string[]> {
+    return this.http.get<string[]>(`${this.stopUrl}/services`);
+  }
+
   addPreTripTask(tripId: number, dto: CreateTaskDto): Observable<Task> {
     return this.http.post<Task>(`${this.baseUrl}/${tripId}/tasks/pre-trip`, dto);
   }
