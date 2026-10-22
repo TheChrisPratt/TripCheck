@@ -6,7 +6,7 @@
 - [x] Add Collapse Stop and Default all Accordions to closed
 - [x] Add Edit Stop Details Functionality
 - [x] Add additional Stop Details Hookups/Check-in/Check-out/Amenities/Services/Door|Gate Codes
-- [ ] Add the ability to edit the Task descriptions
+- [x] Add the ability to edit the Task descriptions
 - [ ] Add Clone Trip Functionality
 - [ ] Add Rearrange Stops Functionality
 - [ ] See if we can calculate the timezone, elevation & weather 

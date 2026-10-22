@@ -30,3 +30,7 @@ export interface CreateTaskDto {
 export interface UpdateTaskStatusDto {
   status: TaskStatus;
 }
+
+export interface UpdateTaskDto {
+  description: string;
+}

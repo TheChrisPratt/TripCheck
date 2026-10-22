@@ -61,6 +61,13 @@ describe('TaskItemComponent', () => {
     });
   });
 
+  it('should emit editTask on edit button click', () => {
+    spyOn(component.editTask, 'emit');
+    const fakeEvent = new Event('click');
+    component.onEdit(fakeEvent);
+    expect(component.editTask.emit).toHaveBeenCalledWith(component.task);
+  });
+
   it('should emit deleteTask on delete button click', () => {
     spyOn(component.deleteTask, 'emit');
     component.onDelete();

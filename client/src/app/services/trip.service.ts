@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { TripDetail, TripSummary, CreateTripDto, UpdateTripDto } from '../models/trip.model';
 import { Stop, CreateStopDto, CloneStopDto, UpdateStopDto } from '../models/stop.model';
-import { Task, CreateTaskDto, TaskStatus } from '../models/task.model';
+import { Task, CreateTaskDto, UpdateTaskDto, TaskStatus } from '../models/task.model';
 
 @Injectable({
   providedIn: 'root'
@@ -76,6 +76,10 @@ export class TripService {
 
   addDepartureTask(stopId: number, dto: CreateTaskDto): Observable<Task> {
     return this.http.post<Task>(`${this.stopUrl}/${stopId}/tasks/departure`, dto);
+  }
+
+  updateTask(taskId: number, dto: UpdateTaskDto): Observable<Task> {
+    return this.http.put<Task>(`${this.taskUrl}/${taskId}`, dto);
   }
 
   updateTaskStatus(taskId: number, status: TaskStatus): Observable<Task> {

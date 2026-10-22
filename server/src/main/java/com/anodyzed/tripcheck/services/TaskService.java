@@ -2,6 +2,7 @@ package com.anodyzed.tripcheck.services;
 
 import com.anodyzed.tripcheck.dto.CreateTaskRequest;
 import com.anodyzed.tripcheck.dto.TaskResponse;
+import com.anodyzed.tripcheck.dto.UpdateTaskRequest;
 import com.anodyzed.tripcheck.dto.UpdateTaskStatusRequest;
 import com.anodyzed.tripcheck.model.Stop;
 import com.anodyzed.tripcheck.model.Task;
@@ -115,6 +116,21 @@ public class TaskService {
     }
     return TaskResponse.fromEntity(saved);
   } //addDepartureTask
+
+  public TaskResponse updateTask (Long taskId,UpdateTaskRequest request,String userId) {
+    Task task = taskRepository.findById(taskId)
+      .orElseThrow(() -> new ResourceNotFoundException("Task not found with id: " + taskId));
+
+    if(task.getTrip() != null) {
+      tripService.getTripEntity(task.getTrip().getId(),userId);
+    } else if(task.getStop() != null && task.getStop().getTrip() != null) {
+      tripService.getTripEntity(task.getStop().getTrip().getId(),userId);
+    }
+
+    task.setDescription(request.getDescription());
+    Task updated = taskRepository.save(task);
+    return TaskResponse.fromEntity(updated);
+  } //updateTask
 
   public TaskResponse updateTaskStatus (Long taskId,UpdateTaskStatusRequest request,String userId) {
     Task task = taskRepository.findById(taskId)

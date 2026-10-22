@@ -3,10 +3,11 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { TripService } from '../../../services/trip.service';
 import { TripDetail, UpdateTripDto } from '../../../models/trip.model';
-import { Task, TaskStatus } from '../../../models/task.model';
+import { Task, TaskStatus, UpdateTaskDto } from '../../../models/task.model';
 import { CreateStopDto, CloneStopDto, UpdateStopDto, Stop } from '../../../models/stop.model';
 import { TaskItemComponent } from '../../tasks/task-item/task-item.component';
 import { TaskModalComponent } from '../../tasks/task-modal/task-modal.component';
+import { TaskEditModalComponent } from '../../tasks/task-edit-modal/task-edit-modal.component';
 import { StopCardComponent } from '../../stops/stop-card/stop-card.component';
 import { StopModalComponent } from '../../stops/stop-modal/stop-modal.component';
 import { StopCloneModalComponent } from '../../stops/stop-clone-modal/stop-clone-modal.component';
@@ -21,6 +22,7 @@ import { TripEditModalComponent } from '../trip-edit-modal/trip-edit-modal.compo
     RouterLink,
     TaskItemComponent,
     TaskModalComponent,
+    TaskEditModalComponent,
     StopCardComponent,
     StopModalComponent,
     StopCloneModalComponent,
@@ -95,6 +97,7 @@ import { TripEditModalComponent } from '../trip-edit-modal/trip-edit-modal.compo
                     [isDragging]="draggedState?.listType === 'preTrip' && draggedState?.index === i"
                     [isDragOver]="dragOverState?.listType === 'preTrip' && dragOverState?.index === i"
                     (statusChange)="onTaskStatusChange($event)"
+                    (editTask)="onOpenEditTaskModal($event)"
                     (deleteTask)="onTaskDelete($event)"
                     (itemDragStart)="onTaskDragStart($event.event, 'preTrip', i)"
                     (itemDragOver)="onTaskDragOver($event.event, 'preTrip', i)"
@@ -135,6 +138,7 @@ import { TripEditModalComponent } from '../trip-edit-modal/trip-edit-modal.compo
                     [isDragging]="draggedState?.listType === 'departureDay' && draggedState?.index === i"
                     [isDragOver]="dragOverState?.listType === 'departureDay' && dragOverState?.index === i"
                     (statusChange)="onTaskStatusChange($event)"
+                    (editTask)="onOpenEditTaskModal($event)"
                     (deleteTask)="onTaskDelete($event)"
                     (itemDragStart)="onTaskDragStart($event.event, 'departureDay', i)"
                     (itemDragOver)="onTaskDragOver($event.event, 'departureDay', i)"
@@ -171,6 +175,7 @@ import { TripEditModalComponent } from '../trip-edit-modal/trip-edit-modal.compo
                   (addArrivalTask)="onAddArrivalTask($event)"
                   (addDepartureTask)="onAddDepartureTask($event)"
                   (taskStatusChange)="onTaskStatusChange($event)"
+                  (taskEdit)="onOpenEditTaskModal($event)"
                   (taskDelete)="onTaskDelete($event)"
                 />
               } @empty {
@@ -210,6 +215,7 @@ import { TripEditModalComponent } from '../trip-edit-modal/trip-edit-modal.compo
                     [isDragging]="draggedState?.listType === 'returnDay' && draggedState?.index === i"
                     [isDragOver]="dragOverState?.listType === 'returnDay' && dragOverState?.index === i"
                     (statusChange)="onTaskStatusChange($event)"
+                    (editTask)="onOpenEditTaskModal($event)"
                     (deleteTask)="onTaskDelete($event)"
                     (itemDragStart)="onTaskDragStart($event.event, 'returnDay', i)"
                     (itemDragOver)="onTaskDragOver($event.event, 'returnDay', i)"
@@ -248,6 +254,14 @@ import { TripEditModalComponent } from '../trip-edit-modal/trip-edit-modal.compo
           title="Add Day of Return Task"
           (taskSubmitted)="onAddReturnDayTask($event)"
           (modalClosed)="showReturnDayModal = false"
+        />
+      }
+
+      @if (taskToEdit) {
+        <app-task-edit-modal
+          [initialDescription]="taskToEdit.description"
+          (taskSubmitted)="onEditTaskSubmit($event)"
+          (modalClosed)="taskToEdit = null"
         />
       }
 
@@ -501,6 +515,7 @@ export class TripDetailComponent implements OnInit {
   showEditTripModal = false;
   stopToClone: Stop | null = null;
   stopToEdit: Stop | null = null;
+  taskToEdit: Task | null = null;
 
   draggedState: { listType: string; index: number } | null = null;
   dragOverState: { listType: string; index: number } | null = null;
@@ -690,6 +705,24 @@ export class TripDetailComponent implements OnInit {
         this.loadTrip(this.trip()!.id);
       },
       error: (err) => alert(err?.error?.message || 'Failed to add task.')
+    });
+  }
+
+  onOpenEditTaskModal(task: Task): void {
+    this.taskToEdit = task;
+  }
+
+  onEditTaskSubmit(dto: UpdateTaskDto): void {
+    if (!this.taskToEdit) return;
+    const taskId = this.taskToEdit.id;
+    this.tripService.updateTask(taskId, dto).subscribe({
+      next: () => {
+        this.taskToEdit = null;
+        if (this.trip()) {
+          this.loadTrip(this.trip()!.id);
+        }
+      },
+      error: (err) => alert(err?.error?.message || 'Failed to update task.')
     });
   }
 

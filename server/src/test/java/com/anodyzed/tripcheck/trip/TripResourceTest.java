@@ -296,4 +296,50 @@ class TripResourceTest {
       .andExpect(jsonPath("$.error").value("Validation Failed"));
   } //stopExtendedFieldsAndCatalogEndpoints
 
+  @Test
+  void updateTaskDescription_viaRestEndpoint () throws Exception {
+    String token = jwtService.generateToken("task_user");
+    Cookie cookie = new Cookie("TRIPCHECK_TOKEN",token);
+
+      // Create Trip
+    MvcResult tripResult = mockMvc.perform(post("/api/trips")
+        .cookie(cookie)
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"name\":\"Task Trip\",\"startingDate\":\"2026-07-01\"}"))
+      .andExpect(status().isCreated())
+      .andReturn();
+
+    Map<?,?> tripData = objectMapper.readValue(tripResult.getResponse().getContentAsString(),Map.class);
+    long tripId = ((Number)tripData.get("id")).longValue();
+
+      // Create Task
+    MvcResult taskResult = mockMvc.perform(post("/api/trips/" + tripId + "/tasks/pre-trip")
+        .cookie(cookie)
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"description\":\"Original description\"}"))
+      .andExpect(status().isCreated())
+      .andExpect(jsonPath("$.description").value("Original description"))
+      .andReturn();
+
+    Map<?,?> taskData = objectMapper.readValue(taskResult.getResponse().getContentAsString(),Map.class);
+    long taskId = ((Number)taskData.get("id")).longValue();
+
+      // Update Task Description
+    mockMvc.perform(put("/api/tasks/" + taskId)
+        .cookie(cookie)
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"description\":\"Updated task description\"}"))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.id").value(taskId))
+      .andExpect(jsonPath("$.description").value("Updated task description"));
+
+      // Validation error when description is blank
+    mockMvc.perform(put("/api/tasks/" + taskId)
+        .cookie(cookie)
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"description\":\"\"}"))
+      .andExpect(status().isBadRequest())
+      .andExpect(jsonPath("$.error").value("Validation Failed"));
+  } //updateTaskDescription_viaRestEndpoint
+
 } //*TripResourceTest

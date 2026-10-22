@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 
 import com.anodyzed.tripcheck.dto.ReorderTasksRequest;
 import com.anodyzed.tripcheck.dto.TaskResponse;
+import com.anodyzed.tripcheck.dto.UpdateTaskRequest;
 import com.anodyzed.tripcheck.dto.UpdateTaskStatusRequest;
 import com.anodyzed.tripcheck.services.TaskService;
 
@@ -30,6 +31,15 @@ public class TaskResource {
   private String getUserId (Authentication authentication) {
     return authentication != null ? authentication.getName() : null;
   } //getUserId
+
+  @PutMapping("/{taskId}")
+  public ResponseEntity<TaskResponse> updateTask (
+    @PathVariable Long taskId,
+    @Valid @RequestBody UpdateTaskRequest request,
+    Authentication authentication) {
+    TaskResponse task = taskService.updateTask(taskId,request,getUserId(authentication));
+    return ResponseEntity.ok(task);
+  } //updateTask
 
   @PatchMapping("/{taskId}/status")
   public ResponseEntity<TaskResponse> updateTaskStatus (

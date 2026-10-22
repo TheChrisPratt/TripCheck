@@ -177,6 +177,27 @@ describe('TripService', () => {
     req.flush(mockStopResponse);
   });
 
+  it('should update task description', () => {
+    const updateDto = { description: 'Updated Task Description' };
+    const mockTaskResponse = {
+      id: 42,
+      description: 'Updated Task Description',
+      status: 'INCOMPLETE',
+      category: 'PRE_TRIP',
+      orderIndex: 0
+    };
+
+    service.updateTask(42, updateDto).subscribe((task) => {
+      expect(task.id).toBe(42);
+      expect(task.description).toBe('Updated Task Description');
+    });
+
+    const req = httpTesting.expectOne('api/tasks/42');
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.body).toEqual(updateDto);
+    req.flush(mockTaskResponse);
+  });
+
   it('should get amenities list', () => {
     const mockAmenities = ['Scenic View', 'Trails', 'Water Access'];
 

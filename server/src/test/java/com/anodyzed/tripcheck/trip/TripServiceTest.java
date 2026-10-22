@@ -9,6 +9,7 @@ import com.anodyzed.tripcheck.dto.TaskResponse;
 import com.anodyzed.tripcheck.dto.TripDetailResponse;
 import com.anodyzed.tripcheck.dto.TripSummaryResponse;
 import com.anodyzed.tripcheck.dto.UpdateStopRequest;
+import com.anodyzed.tripcheck.dto.UpdateTaskRequest;
 import com.anodyzed.tripcheck.dto.UpdateTaskStatusRequest;
 import com.anodyzed.tripcheck.dto.UpdateTripRequest;
 import com.anodyzed.tripcheck.model.TaskCategory;
@@ -596,5 +597,65 @@ class TripServiceTest {
     List<String> services = stopService.getAllServices();
     assertEquals(List.of("Ice","Propane"),services);
   } //cloneStop_withExtendedFields_preservesAllFields
+
+  @Test
+  void updateTask_updatesDescriptionAndEnforcesUserIsolation () {
+    TripDetailResponse trip = tripService.createTrip(
+      CreateTripRequest.builder()
+        .name("Task Edit Trip")
+        .startingDate(LocalDate.of(2026,9,1))
+        .build(),
+      "alice"
+    );
+
+    TaskResponse task = taskService.addPreTripTask(
+      trip.getId(),
+      CreateTaskRequest.builder().description("Original Task Description").build(),
+      "alice"
+    );
+
+    UpdateTaskRequest updateReq = UpdateTaskRequest.builder()
+      .description("Updated Task Description")
+      .build();
+
+    TaskResponse updated = taskService.updateTask(task.getId(),updateReq,"alice");
+    assertEquals("Updated Task Description",updated.getDescription());
+
+      // User isolation: bob cannot update alice's task
+    assertThrows(ResourceNotFoundException.class,() -> taskService.updateTask(task.getId(),updateReq,"bob"));
+  } //updateTask_updatesDescriptionAndEnforcesUserIsolation
+
+  @Test
+  void updateTask_stopTask_updatesDescriptionAndEnforcesUserIsolation () {
+    TripDetailResponse trip = tripService.createTrip(
+      CreateTripRequest.builder()
+        .name("Stop Task Trip")
+        .startingDate(LocalDate.of(2026,9,1))
+        .build(),
+      "alice"
+    );
+
+    StopResponse stop = stopService.addStop(
+      trip.getId(),
+      CreateStopRequest.builder().name("Stop 1").build(),
+      "alice"
+    );
+
+    TaskResponse task = taskService.addArrivalTask(
+      stop.getId(),
+      CreateTaskRequest.builder().description("Initial Arrival Task").build(),
+      "alice"
+    );
+
+    UpdateTaskRequest updateReq = UpdateTaskRequest.builder()
+      .description("Edited Arrival Task")
+      .build();
+
+    TaskResponse updated = taskService.updateTask(task.getId(),updateReq,"alice");
+    assertEquals("Edited Arrival Task",updated.getDescription());
+
+      // User isolation: bob cannot update alice's stop task
+    assertThrows(ResourceNotFoundException.class,() -> taskService.updateTask(task.getId(),updateReq,"bob"));
+  } //updateTask_stopTask_updatesDescriptionAndEnforcesUserIsolation
 
 } //*TripServiceTest

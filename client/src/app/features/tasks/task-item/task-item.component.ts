@@ -31,7 +31,10 @@ import { Task, TaskStatus } from '../../../models/task.model';
         />
         <span class="task-text">{{ task.description }}</span>
       </label>
-      <button type="button" class="delete-btn" (click)="onDelete()" title="Delete task">&times;</button>
+      <div class="task-actions">
+        <button type="button" class="edit-btn" (click)="onEdit($event)" title="Edit task" aria-label="Edit task">&#x270E;</button>
+        <button type="button" class="delete-btn" (click)="onDelete($event)" title="Delete task" aria-label="Delete task">&times;</button>
+      </div>
     </div>
   `,
   styles: [`
@@ -108,20 +111,31 @@ import { Task, TaskStatus } from '../../../models/task.model';
       text-decoration: line-through;
       color: #94a3b8;
     }
+    .task-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .edit-btn,
     .delete-btn {
       background: none;
       border: none;
       color: #94a3b8;
-      font-size: 1.25rem;
+      font-size: 1.1rem;
       line-height: 1;
       cursor: pointer;
       padding: 2px 6px;
       border-radius: 4px;
       opacity: 0.5;
-      transition: opacity 0.2s, color 0.2s;
+      transition: opacity 0.2s, color 0.2s, background 0.2s;
     }
+    .task-item:hover .edit-btn,
     .task-item:hover .delete-btn {
       opacity: 1;
+    }
+    .edit-btn:hover {
+      color: #2563eb;
+      background: #dbeafe;
     }
     .delete-btn:hover {
       color: #ef4444;
@@ -136,6 +150,7 @@ export class TaskItemComponent {
   @Input() isDragOver = false;
 
   @Output() statusChange = new EventEmitter<{ task: Task; newStatus: TaskStatus }>();
+  @Output() editTask = new EventEmitter<Task>();
   @Output() deleteTask = new EventEmitter<Task>();
   @Output() itemDragStart = new EventEmitter<{ event: DragEvent; task: Task; index: number }>();
   @Output() itemDragOver = new EventEmitter<{ event: DragEvent; task: Task; index: number }>();
@@ -153,7 +168,15 @@ export class TaskItemComponent {
     this.statusChange.emit({ task: this.task, newStatus });
   }
 
-  onDelete(): void {
+  onEdit(event: Event): void {
+    event.stopPropagation();
+    this.editTask.emit(this.task);
+  }
+
+  onDelete(event?: Event): void {
+    if (event) {
+      event.stopPropagation();
+    }
     this.deleteTask.emit(this.task);
   }
 

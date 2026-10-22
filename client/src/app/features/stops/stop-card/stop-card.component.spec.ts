@@ -123,6 +123,13 @@ describe('StopCardComponent', () => {
     expect(component.cloneStop.emit).toHaveBeenCalledWith(component.stop);
   });
 
+  it('should emit taskEdit when onTaskEdit is called', () => {
+    spyOn(component.taskEdit, 'emit');
+    const task = component.stop.arrivalTasks[0];
+    component.onTaskEdit(task);
+    expect(component.taskEdit.emit).toHaveBeenCalledWith(task);
+  });
+
   it('should emit editStop when edit button is clicked', () => {
     spyOn(component.editStop, 'emit');
     const editBtn = fixture.nativeElement.querySelector('.btn-edit-stop') as HTMLButtonElement;

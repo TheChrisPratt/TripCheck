@@ -144,6 +144,7 @@ import { TaskModalComponent } from '../../tasks/task-modal/task-modal.component'
                   [isDragging]="draggedState?.listType === 'arrival' && draggedState?.index === i"
                   [isDragOver]="dragOverState?.listType === 'arrival' && dragOverState?.index === i"
                   (statusChange)="onTaskStatusChange($event)"
+                  (editTask)="onTaskEdit($event)"
                   (deleteTask)="onTaskDelete($event)"
                   (itemDragStart)="onTaskDragStart($event.event, 'arrival', i)"
                   (itemDragOver)="onTaskDragOver($event.event, 'arrival', i)"
@@ -182,6 +183,7 @@ import { TaskModalComponent } from '../../tasks/task-modal/task-modal.component'
                   [isDragging]="draggedState?.listType === 'departure' && draggedState?.index === i"
                   [isDragOver]="dragOverState?.listType === 'departure' && dragOverState?.index === i"
                   (statusChange)="onTaskStatusChange($event)"
+                  (editTask)="onTaskEdit($event)"
                   (deleteTask)="onTaskDelete($event)"
                   (itemDragStart)="onTaskDragStart($event.event, 'departure', i)"
                   (itemDragOver)="onTaskDragOver($event.event, 'departure', i)"
@@ -492,6 +494,7 @@ export class StopCardComponent {
   @Output() addArrivalTask = new EventEmitter<{ stopId: number; description: string }>();
   @Output() addDepartureTask = new EventEmitter<{ stopId: number; description: string }>();
   @Output() taskStatusChange = new EventEmitter<{ task: Task; newStatus: TaskStatus }>();
+  @Output() taskEdit = new EventEmitter<Task>();
   @Output() taskDelete = new EventEmitter<Task>();
   @Output() taskReorder = new EventEmitter<{ stopId: number; listType: string; tasks: Task[] }>();
 
@@ -546,6 +549,10 @@ export class StopCardComponent {
 
   onTaskStatusChange(event: { task: Task; newStatus: TaskStatus }): void {
     this.taskStatusChange.emit(event);
+  }
+
+  onTaskEdit(task: Task): void {
+    this.taskEdit.emit(task);
   }
 
   onTaskDragStart(event: DragEvent, listType: string, index: number): void {

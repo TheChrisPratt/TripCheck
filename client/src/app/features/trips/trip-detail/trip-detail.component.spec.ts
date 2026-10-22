@@ -41,6 +41,7 @@ describe('TripDetailComponent', () => {
     tripServiceSpy = jasmine.createSpyObj('TripService', [
       'getTrip',
       'updateTrip',
+      'updateTask',
       'updateTaskStatus',
       'reorderTasks',
       'deleteTask',
@@ -219,6 +220,28 @@ describe('TripDetailComponent', () => {
       numberOfNights: 5
     });
     expect(component.stopToEdit).toBeNull();
+    expect(tripServiceSpy.getTrip).toHaveBeenCalled();
+  });
+
+  it('should open edit task modal and update task when submitted', () => {
+    const taskToEdit = mockTripDetail.preTripTasks[0];
+    component.onOpenEditTaskModal(taskToEdit);
+    expect(component.taskToEdit).toEqual(taskToEdit);
+
+    const updatedTaskResponse = {
+      ...taskToEdit,
+      description: 'Service car and check tire pressure'
+    };
+    tripServiceSpy.updateTask.and.returnValue(of(updatedTaskResponse));
+
+    component.onEditTaskSubmit({
+      description: 'Service car and check tire pressure'
+    });
+
+    expect(tripServiceSpy.updateTask).toHaveBeenCalledWith(101, {
+      description: 'Service car and check tire pressure'
+    });
+    expect(component.taskToEdit).toBeNull();
     expect(tripServiceSpy.getTrip).toHaveBeenCalled();
   });
 });
