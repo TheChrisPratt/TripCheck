@@ -1,0 +1,17 @@
+spring:
+  datasource:
+    url: jdbc:mysql://db.planetpratt.com:3306/tripcheck_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: tripcheck_user
+    password: tripcheck_pass
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    database-platform: org.hibernate.dialect.MySQLDialect
+app:
+  cors:
+    allowed-origins: "http://tripcheck.anodyzed.com:4200"
+  webauthn:
+    rp-id: "tripcheck.anodyzed.com"
+    rp-name: "TripCheck"
+    origin: "http://tripcheck.anodyzed.com:4200"
