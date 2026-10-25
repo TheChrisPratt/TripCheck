@@ -6,6 +6,9 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.PrePersist;
@@ -22,7 +25,9 @@ import lombok.Setter;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(name="trips")
@@ -48,8 +53,14 @@ public class Trip {
   @Column(name="ending_date")
   private LocalDate endingDate;
 
-  @Column(name="user_id",length=100)
-  private String userId;
+  @ManyToMany
+  @JoinTable(
+    name="trip_users",
+    joinColumns=@JoinColumn(name="trip_id"),
+    inverseJoinColumns=@JoinColumn(name="user_id")
+  )
+  @Builder.Default
+  private Set<User> users = new HashSet<>();
 
   @OneToMany(mappedBy="trip",cascade=CascadeType.ALL,orphanRemoval=true)
   @OrderBy("orderIndex ASC")
@@ -180,6 +191,28 @@ public class Trip {
       }
     }
   } //recalculateDates
+
+  public boolean hasUser (String username) {
+    if(username == null || users == null) {
+      return false;
+    }
+    return users.stream().anyMatch(u -> username.equalsIgnoreCase(u.getUsername()));
+  } //hasUser
+
+  public void addUser (User user) {
+    if(users == null) {
+      users = new HashSet<>();
+    }
+    if(user != null) {
+      users.add(user);
+    }
+  } //addUser
+
+  public void removeUser (User user) {
+    if(users != null && user != null) {
+      users.remove(user);
+    }
+  } //removeUser
 
   @PrePersist
   @PreUpdate

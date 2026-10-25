@@ -223,4 +223,66 @@ describe('TripService', () => {
     expect(req.request.method).toBe('GET');
     req.flush(mockServices);
   });
+
+  it('should get users list', () => {
+    const mockUsers = [
+      { id: 1, username: 'alice', displayName: 'Alice' },
+      { id: 2, username: 'bob', displayName: 'Bob' }
+    ];
+
+    service.getUsers().subscribe((users) => {
+      expect(users.length).toBe(2);
+      expect(users[0].username).toBe('alice');
+      expect(users[1].username).toBe('bob');
+    });
+
+    const req = httpTesting.expectOne('api/users');
+    expect(req.request.method).toBe('GET');
+    req.flush(mockUsers);
+  });
+
+  it('should add user to trip', () => {
+    const mockTrip = {
+      id: 1,
+      name: 'Collab Trip',
+      startingDate: '2026-08-01',
+      endingDate: '2026-08-01',
+      users: [{ id: 1, username: 'alice' }, { id: 2, username: 'bob' }],
+      preTripTasks: [],
+      departureDayTasks: [],
+      returnDayTasks: [],
+      stops: []
+    };
+
+    service.addTripUser(1, 'bob').subscribe((trip) => {
+      expect(trip.users?.length).toBe(2);
+    });
+
+    const req = httpTesting.expectOne('api/trips/1/users');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ username: 'bob' });
+    req.flush(mockTrip);
+  });
+
+  it('should remove user from trip', () => {
+    const mockTrip = {
+      id: 1,
+      name: 'Collab Trip',
+      startingDate: '2026-08-01',
+      endingDate: '2026-08-01',
+      users: [{ id: 1, username: 'alice' }],
+      preTripTasks: [],
+      departureDayTasks: [],
+      returnDayTasks: [],
+      stops: []
+    };
+
+    service.removeTripUser(1, 'bob').subscribe((trip) => {
+      expect(trip.users?.length).toBe(1);
+    });
+
+    const req = httpTesting.expectOne('api/trips/1/users/bob');
+    expect(req.request.method).toBe('DELETE');
+    req.flush(mockTrip);
+  });
 });

@@ -9,5 +9,6 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface TripRepository extends JpaRepository<Trip,Long> {
-  List<Trip> findByUserIdOrderByStartingDateAsc (String userId);
+  List<Trip> findByUsers_UsernameIgnoreCaseOrderByStartingDateAsc (String username);
+  List<Trip> findAllByOrderByStartingDateAsc ();
 } //*TripRepository

@@ -19,6 +19,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -341,5 +342,113 @@ class TripResourceTest {
       .andExpect(status().isBadRequest())
       .andExpect(jsonPath("$.error").value("Validation Failed"));
   } //updateTaskDescription_viaRestEndpoint
+
+  @Test
+  void userRegistrationAndLookup_viaRestEndpoints () throws Exception {
+      // 1. Register Alice
+    mockMvc.perform(post("/api/auth/webauthn/register-request")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"username\":\"alice\",\"displayName\":\"Alice Wonderland\"}"))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.challenge").exists());
+
+    mockMvc.perform(post("/api/auth/webauthn/register-finish")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"username\":\"alice\"}"))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.authenticated").value(true))
+      .andExpect(jsonPath("$.username").value("alice"));
+
+      // 2. Register Bob
+    mockMvc.perform(post("/api/auth/webauthn/register-request")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"username\":\"bob\",\"displayName\":\"Bob Builder\"}"))
+      .andExpect(status().isOk());
+
+    mockMvc.perform(post("/api/auth/webauthn/register-finish")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"username\":\"bob\"}"))
+      .andExpect(status().isOk());
+
+      // 3. Query /api/users with auth cookie
+    String token = jwtService.generateToken("alice");
+    Cookie cookie = new Cookie("TRIPCHECK_TOKEN",token);
+
+    mockMvc.perform(get("/api/users").cookie(cookie))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$[0].username").value("alice"))
+      .andExpect(jsonPath("$[0].displayName").value("Alice Wonderland"))
+      .andExpect(jsonPath("$[1].username").value("bob"))
+      .andExpect(jsonPath("$[1].displayName").value("Bob Builder"));
+
+      // 4. Unauthorized access to /api/users
+    mockMvc.perform(get("/api/users"))
+      .andExpect(status().isUnauthorized());
+  } //userRegistrationAndLookup_viaRestEndpoints
+
+  @Test
+  void tripCollaborators_addAndRemoveViaRestEndpoints () throws Exception {
+    String aliceToken = jwtService.generateToken("alice");
+    Cookie aliceCookie = new Cookie("TRIPCHECK_TOKEN",aliceToken);
+
+    String bobToken = jwtService.generateToken("bob");
+    Cookie bobCookie = new Cookie("TRIPCHECK_TOKEN",bobToken);
+
+      // Register bob in users database
+    mockMvc.perform(post("/api/auth/webauthn/register-request")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"username\":\"bob\",\"displayName\":\"Bob Builder\"}"))
+      .andExpect(status().isOk());
+    mockMvc.perform(post("/api/auth/webauthn/register-finish")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"username\":\"bob\"}"))
+      .andExpect(status().isOk());
+
+      // Alice creates trip
+    MvcResult tripResult = mockMvc.perform(post("/api/trips")
+        .cookie(aliceCookie)
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"name\":\"Collab Trip\",\"startingDate\":\"2026-08-15\"}"))
+      .andExpect(status().isCreated())
+      .andExpect(jsonPath("$.users[0].username").value("alice"))
+      .andReturn();
+
+    Map<?,?> tripData = objectMapper.readValue(tripResult.getResponse().getContentAsString(),Map.class);
+    long tripId = ((Number)tripData.get("id")).longValue();
+
+      // Bob cannot access yet
+    mockMvc.perform(get("/api/trips/" + tripId).cookie(bobCookie))
+      .andExpect(status().isNotFound());
+
+      // Alice adds Bob
+    mockMvc.perform(post("/api/trips/" + tripId + "/users")
+        .cookie(aliceCookie)
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"username\":\"bob\"}"))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.users.length()").value(2));
+
+      // Bob can now access
+    mockMvc.perform(get("/api/trips/" + tripId).cookie(bobCookie))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.name").value("Collab Trip"));
+
+      // Bob removes himself
+    mockMvc.perform(delete("/api/trips/" + tripId + "/users/bob")
+        .cookie(bobCookie))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.users.length()").value(1))
+      .andExpect(jsonPath("$.users[0].username").value("alice"));
+
+      // Bob no longer has access
+    mockMvc.perform(get("/api/trips/" + tripId).cookie(bobCookie))
+      .andExpect(status().isNotFound());
+
+      // Alice cannot remove herself as last collaborator
+    mockMvc.perform(delete("/api/trips/" + tripId + "/users/alice")
+        .cookie(aliceCookie))
+      .andExpect(status().isBadRequest())
+      .andExpect(jsonPath("$.message").value("Cannot remove the last collaborator from the trip"));
+  } //tripCollaborators_addAndRemoveViaRestEndpoints
 
 } //*TripResourceTest

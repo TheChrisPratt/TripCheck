@@ -13,6 +13,7 @@ import { StopModalComponent } from '../../stops/stop-modal/stop-modal.component'
 import { StopCloneModalComponent } from '../../stops/stop-clone-modal/stop-clone-modal.component';
 import { StopEditModalComponent } from '../../stops/stop-edit-modal/stop-edit-modal.component';
 import { TripEditModalComponent } from '../trip-edit-modal/trip-edit-modal.component';
+import { TripAccessModalComponent } from '../trip-access-modal/trip-access-modal.component';
 
 @Component({
   selector: 'app-trip-detail',
@@ -27,7 +28,8 @@ import { TripEditModalComponent } from '../trip-edit-modal/trip-edit-modal.compo
     StopModalComponent,
     StopCloneModalComponent,
     StopEditModalComponent,
-    TripEditModalComponent
+    TripEditModalComponent,
+    TripAccessModalComponent
   ],
   template: `
     <div class="trip-detail-container">
@@ -58,9 +60,15 @@ import { TripEditModalComponent } from '../trip-edit-modal/trip-edit-modal.compo
                   <span class="count-badge">
                     📍 {{ trip()!.stops.length }} {{ trip()!.stops.length === 1 ? 'Stop' : 'Stops' }}
                   </span>
+                  <span class="count-badge clickable-badge" (click)="onOpenAccessModal()" title="Manage trip collaborators">
+                    👥 {{ (trip()!.users?.length || 1) }} {{ (trip()!.users?.length === 1) ? 'Collaborator' : 'Collaborators' }}
+                  </span>
                 </div>
               </div>
               <div class="header-actions">
+                <button type="button" class="btn btn-outline" (click)="onOpenAccessModal()">
+                  👥 Share
+                </button>
                 <button type="button" class="btn btn-outline" (click)="showEditTripModal = true">
                   ✏️ Edit Trip
                 </button>
@@ -296,6 +304,15 @@ import { TripEditModalComponent } from '../trip-edit-modal/trip-edit-modal.compo
           (modalClosed)="showEditTripModal = false"
         />
       }
+
+      @if (showAccessModal && trip()) {
+        <app-trip-access-modal
+          [collaborators]="trip()!.users || []"
+          (userAdded)="onAddCollaborator($event)"
+          (userRemoved)="onRemoveCollaborator($event)"
+          (modalClosed)="showAccessModal = false"
+        />
+      }
     </div>
   `,
   styles: [`
@@ -355,6 +372,14 @@ import { TripEditModalComponent } from '../trip-edit-modal/trip-edit-modal.compo
       font-size: 0.9rem;
       font-weight: 500;
       color: #334155;
+    }
+    .clickable-badge {
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .clickable-badge:hover {
+      background: #e2e8f0;
+      border-color: #cbd5e1;
     }
     .checklist-card {
       background: #ffffff;
@@ -513,6 +538,7 @@ export class TripDetailComponent implements OnInit {
   showReturnDayModal = false;
   showAddStopModal = false;
   showEditTripModal = false;
+  showAccessModal = false;
   stopToClone: Stop | null = null;
   stopToEdit: Stop | null = null;
   taskToEdit: Task | null = null;
@@ -813,6 +839,34 @@ export class TripDetailComponent implements OnInit {
       },
       error: (err) => {
         alert(err?.error?.message || 'Failed to update trip.');
+      }
+    });
+  }
+
+  onOpenAccessModal(): void {
+    this.showAccessModal = true;
+  }
+
+  onAddCollaborator(username: string): void {
+    if (!this.trip()) return;
+    this.tripService.addTripUser(this.trip()!.id, username).subscribe({
+      next: (updatedTrip) => {
+        this.trip.set(updatedTrip);
+      },
+      error: (err) => {
+        alert(err?.error?.message || 'Failed to add collaborator.');
+      }
+    });
+  }
+
+  onRemoveCollaborator(username: string): void {
+    if (!this.trip()) return;
+    this.tripService.removeTripUser(this.trip()!.id, username).subscribe({
+      next: (updatedTrip) => {
+        this.trip.set(updatedTrip);
+      },
+      error: (err) => {
+        alert(err?.error?.message || 'Failed to remove collaborator.');
       }
     });
   }

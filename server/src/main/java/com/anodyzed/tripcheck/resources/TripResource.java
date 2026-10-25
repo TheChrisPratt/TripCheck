@@ -2,6 +2,7 @@ package com.anodyzed.tripcheck.resources;
 
 import jakarta.validation.Valid;
 
+import com.anodyzed.tripcheck.dto.AddTripUserRequest;
 import com.anodyzed.tripcheck.dto.CreateStopRequest;
 import com.anodyzed.tripcheck.dto.CreateTaskRequest;
 import com.anodyzed.tripcheck.dto.CreateTripRequest;
@@ -120,5 +121,23 @@ public class TripResource {
     TaskResponse task = taskService.addReturnDayTask(tripId,request,getUserId(authentication));
     return ResponseEntity.status(HttpStatus.CREATED).body(task);
   } //addReturnDayTask
+
+  @PostMapping("/{tripId}/users")
+  public ResponseEntity<TripDetailResponse> addCollaborator (
+    @PathVariable Long tripId,
+    @Valid @RequestBody AddTripUserRequest request,
+    Authentication authentication) {
+    TripDetailResponse trip = tripService.addCollaborator(tripId,request,getUserId(authentication));
+    return ResponseEntity.ok(trip);
+  } //addCollaborator
+
+  @DeleteMapping("/{tripId}/users/{username}")
+  public ResponseEntity<TripDetailResponse> removeCollaborator (
+    @PathVariable Long tripId,
+    @PathVariable String username,
+    Authentication authentication) {
+    TripDetailResponse trip = tripService.removeCollaborator(tripId,username,getUserId(authentication));
+    return ResponseEntity.ok(trip);
+  } //removeCollaborator
 
 } //*TripResource

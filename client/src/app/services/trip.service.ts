@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { TripDetail, TripSummary, CreateTripDto, UpdateTripDto } from '../models/trip.model';
 import { Stop, CreateStopDto, CloneStopDto, UpdateStopDto } from '../models/stop.model';
 import { Task, CreateTaskDto, UpdateTaskDto, TaskStatus } from '../models/task.model';
+import { UserSummary } from '../models/user.model';
 
 @Injectable({
   providedIn: 'root'
@@ -13,6 +14,19 @@ export class TripService {
   private baseUrl = 'api/trips';
   private stopUrl = 'api/stops';
   private taskUrl = 'api/tasks';
+  private userUrl = 'api/users';
+
+  getUsers(): Observable<UserSummary[]> {
+    return this.http.get<UserSummary[]>(this.userUrl);
+  }
+
+  addTripUser(tripId: number, username: string): Observable<TripDetail> {
+    return this.http.post<TripDetail>(`${this.baseUrl}/${tripId}/users`, { username });
+  }
+
+  removeTripUser(tripId: number, username: string): Observable<TripDetail> {
+    return this.http.delete<TripDetail>(`${this.baseUrl}/${tripId}/users/${encodeURIComponent(username)}`);
+  }
 
   getTrips(): Observable<TripSummary[]> {
     return this.http.get<TripSummary[]>(this.baseUrl);

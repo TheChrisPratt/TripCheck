@@ -22,7 +22,9 @@ public class TripDetailResponse {
   private String name;
   private LocalDate startingDate;
   private LocalDate endingDate;
-  private String userId;
+
+  @Builder.Default
+  private List<UserSummaryDto> users = new ArrayList<>();
 
   @Builder.Default
   private List<TaskResponse> preTripTasks = new ArrayList<>();
@@ -45,7 +47,9 @@ public class TripDetailResponse {
       .name(trip.getName())
       .startingDate(trip.getStartingDate())
       .endingDate(trip.getEndingDate())
-      .userId(trip.getUserId())
+      .users(trip.getUsers() != null
+        ? trip.getUsers().stream().map(UserSummaryDto::fromEntity).toList()
+        : new ArrayList<>())
       .preTripTasks(trip.getPreTripTasks() != null
         ? trip.getPreTripTasks().stream().map(TaskResponse::fromEntity).toList()
         : new ArrayList<>())

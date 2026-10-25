@@ -7,11 +7,13 @@ import com.anodyzed.tripcheck.model.Task;
 import com.anodyzed.tripcheck.model.TaskCategory;
 import com.anodyzed.tripcheck.model.TaskStatus;
 import com.anodyzed.tripcheck.model.Trip;
+import com.anodyzed.tripcheck.model.User;
 import com.anodyzed.tripcheck.repository.AmenityRepository;
 import com.anodyzed.tripcheck.repository.StopRepository;
 import com.anodyzed.tripcheck.repository.StopServiceCatalogRepository;
 import com.anodyzed.tripcheck.repository.TaskRepository;
 import com.anodyzed.tripcheck.repository.TripRepository;
+import com.anodyzed.tripcheck.repository.UserRepository;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -46,13 +48,39 @@ class TripPersistenceTest {
   @Autowired
   private StopServiceCatalogRepository stopServiceCatalogRepository;
 
+  @Autowired
+  private UserRepository userRepository;
+
+  @Test
+  void user_persistsAndQueriesCorrectly () {
+    User user = User.builder()
+      .username("alice")
+      .displayName("Alice Smith")
+      .build();
+
+    User saved = userRepository.saveAndFlush(user);
+    assertNotNull(saved.getId());
+
+    assertTrue(userRepository.findByUsernameIgnoreCase("alice").isPresent());
+    assertTrue(userRepository.findByUsernameIgnoreCase("ALICE").isPresent());
+    assertEquals("Alice Smith",userRepository.findByUsernameIgnoreCase("alice").get().getDisplayName());
+
+    userRepository.saveAndFlush(User.builder().username("bob").displayName("Bob Jones").build());
+    List<User> users = userRepository.findAllByOrderByUsernameAsc();
+    assertEquals(2,users.size());
+    assertEquals("alice",users.get(0).getUsername());
+    assertEquals("bob",users.get(1).getUsername());
+  } //user_persistsAndQueriesCorrectly
+
   @Test
   void saveAndRetrieveTripWithStopsAndTasks () {
+    User user = userRepository.saveAndFlush(User.builder().username("user123").displayName("User 123").build());
+
     Trip trip = Trip.builder()
       .name("Pacific Coast Highway")
       .startingDate(LocalDate.of(2026,8,10))
-      .userId("user123")
       .build();
+    trip.addUser(user);
 
     trip.addPreTripTask("Check oil level");
     trip.addDepartureDayTask("Load bikes");
@@ -79,7 +107,7 @@ class TripPersistenceTest {
     assertEquals(LocalDate.of(2026,8,10),saved.getStops().getFirst().getStopDate());
     assertEquals(LocalDate.of(2026,8,12),saved.getEndingDate());
 
-    List<Trip> userTrips = tripRepository.findByUserIdOrderByStartingDateAsc("user123");
+    List<Trip> userTrips = tripRepository.findByUsers_UsernameIgnoreCaseOrderByStartingDateAsc("user123");
     assertEquals(1,userTrips.size());
     assertEquals("Pacific Coast Highway",userTrips.getFirst().getName());
 
@@ -101,11 +129,12 @@ class TripPersistenceTest {
 
   @Test
   void taskOrderIndex_persistsAndOrdersCorrectly () {
+    User user = userRepository.saveAndFlush(User.builder().username("orderuser").build());
     Trip trip = Trip.builder()
       .name("Order Test Trip")
       .startingDate(LocalDate.of(2026,9,1))
-      .userId("orderUser")
       .build();
+    trip.addUser(user);
 
     trip.addPreTripTask("First Task");
     trip.addPreTripTask("Second Task");
@@ -125,11 +154,12 @@ class TripPersistenceTest {
 
   @Test
   void stopExtendedFields_persistsCollectionsAndValues () {
+    User user = userRepository.saveAndFlush(User.builder().username("extendeduser").build());
     Trip trip = Trip.builder()
       .name("Extended Fields Trip")
       .startingDate(LocalDate.of(2026,10,1))
-      .userId("extendedUser")
       .build();
+    trip.addUser(user);
 
     Stop stop = Stop.builder()
       .name("Yosemite Valley")

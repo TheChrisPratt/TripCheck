@@ -6,6 +6,7 @@ import com.anodyzed.tripcheck.security.webauthn.dto.AssertionStartRequest;
 import com.anodyzed.tripcheck.security.webauthn.dto.AuthResponse;
 import com.anodyzed.tripcheck.security.webauthn.dto.RegistrationFinishRequest;
 import com.anodyzed.tripcheck.security.webauthn.dto.RegistrationStartRequest;
+import com.anodyzed.tripcheck.services.UserService;
 import com.anodyzed.tripcheck.util.exception.BadRequestException;
 
 import java.security.SecureRandom;
@@ -28,21 +29,25 @@ import org.springframework.stereotype.Service;
 public class WebAuthnService {
 
   private final JwtService jwtService;
+  private final UserService userService;
   private final String rpId;
   private final String rpName;
   private final String origin;
   private final SecureRandom random = new SecureRandom();
 
   private final Map<String,String> registrationChallenges = new ConcurrentHashMap<>();
+  private final Map<String,String> registrationDisplayNames = new ConcurrentHashMap<>();
   private final Map<String,String> assertionChallenges = new ConcurrentHashMap<>();
   private final Map<String,List<String>> userCredentials = new ConcurrentHashMap<>();
 
   public WebAuthnService (
     JwtService jwtService,
+    UserService userService,
     @Value("${app.webauthn.rp-id:localhost}") String rpId,
     @Value("${app.webauthn.rp-name:TripCheck}") String rpName,
     @Value("${app.webauthn.origin:http://localhost:4200}") String origin) {
     this.jwtService = jwtService;
+    this.userService = userService;
     this.rpId = rpId;
     this.rpName = rpName;
     this.origin = origin;
@@ -58,6 +63,9 @@ public class WebAuthnService {
     String username = request.getUsername().trim().toLowerCase();
     String challenge = generateBase64UrlChallenge();
     registrationChallenges.put(username,challenge);
+    if(request.getDisplayName() != null && !request.getDisplayName().isBlank()) {
+      registrationDisplayNames.put(username,request.getDisplayName().trim());
+    }
 
     Map<String,Object> rp = new HashMap<>();
     rp.put("id",rpId);
@@ -92,6 +100,7 @@ public class WebAuthnService {
   public ResponseEntity<AuthResponse> finishRegistration (RegistrationFinishRequest request) {
     String username = request.getUsername().trim().toLowerCase();
     String challenge = registrationChallenges.remove(username);
+    String displayName = registrationDisplayNames.remove(username);
 
     if(challenge == null) {
       throw new BadRequestException("Registration challenge expired or invalid for user: " + username);
@@ -106,6 +115,9 @@ public class WebAuthnService {
     }
 
     userCredentials.computeIfAbsent(username,k -> new ArrayList<>()).add(credentialId);
+
+      // Persist or update user in database
+    userService.getOrCreateUser(username,displayName);
 
     String token = jwtService.generateToken(username);
     ResponseCookie cookie = jwtService.generateAuthCookie(token);
@@ -152,6 +164,9 @@ public class WebAuthnService {
     if(challenge == null) {
       throw new BadRequestException("Authentication challenge expired or invalid for user: " + username);
     }
+
+      // Ensure user exists in database
+    userService.getOrCreateUser(username,null);
 
     String token = jwtService.generateToken(username);
     ResponseCookie cookie = jwtService.generateAuthCookie(token);

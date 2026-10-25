@@ -1,5 +1,6 @@
 import { Stop } from './stop.model';
 import { Task } from './task.model';
+import { UserSummary } from './user.model';
 
 export interface TripSummary {
   id: number;
@@ -16,7 +17,7 @@ export interface TripDetail {
   name: string;
   startingDate: string;
   endingDate: string;
-  userId?: string;
+  users?: UserSummary[];
   preTripTasks: Task[];
   departureDayTasks: Task[];
   returnDayTasks: Task[];

@@ -1,5 +1,6 @@
 package com.anodyzed.tripcheck.trip;
 
+import com.anodyzed.tripcheck.dto.AddTripUserRequest;
 import com.anodyzed.tripcheck.dto.CloneStopRequest;
 import com.anodyzed.tripcheck.dto.CreateStopRequest;
 import com.anodyzed.tripcheck.dto.CreateTaskRequest;
@@ -19,9 +20,12 @@ import com.anodyzed.tripcheck.repository.StopRepository;
 import com.anodyzed.tripcheck.repository.StopServiceCatalogRepository;
 import com.anodyzed.tripcheck.repository.TaskRepository;
 import com.anodyzed.tripcheck.repository.TripRepository;
+import com.anodyzed.tripcheck.repository.UserRepository;
 import com.anodyzed.tripcheck.services.StopService;
 import com.anodyzed.tripcheck.services.TaskService;
 import com.anodyzed.tripcheck.services.TripService;
+import com.anodyzed.tripcheck.services.UserService;
+import com.anodyzed.tripcheck.util.exception.BadRequestException;
 import com.anodyzed.tripcheck.util.exception.ResourceNotFoundException;
 
 import java.time.LocalDate;
@@ -70,11 +74,18 @@ class TripServiceTest {
   @Autowired
   private StopServiceCatalogRepository stopServiceCatalogRepository;
 
+  @Autowired
+  private UserRepository userRepository;
+
+  @Autowired
+  private UserService userService;
+
   @BeforeEach
   void setUp () {
     taskRepository.deleteAll();
     stopRepository.deleteAll();
     tripRepository.deleteAll();
+    userRepository.deleteAll();
     amenityRepository.deleteAll();
     stopServiceCatalogRepository.deleteAll();
   } //setUp
@@ -92,7 +103,8 @@ class TripServiceTest {
     assertEquals("Yellowstone Expedition",created.getName());
     assertEquals(LocalDate.of(2026,7,1),created.getStartingDate());
     assertEquals(LocalDate.of(2026,7,1),created.getEndingDate());
-    assertEquals("alice",created.getUserId());
+    assertEquals(1,created.getUsers().size());
+    assertEquals("alice",created.getUsers().getFirst().getUsername());
   } //createTrip_setsDatesAndPersists
 
   @Test
@@ -657,5 +669,90 @@ class TripServiceTest {
       // User isolation: bob cannot update alice's stop task
     assertThrows(ResourceNotFoundException.class,() -> taskService.updateTask(task.getId(),updateReq,"bob"));
   } //updateTask_stopTask_updatesDescriptionAndEnforcesUserIsolation
+
+  @Test
+  void multiUserCollaboration_addCollaboratorAndEnforceAccess () {
+    userService.getOrCreateUser("alice","Alice");
+    userService.getOrCreateUser("bob","Bob");
+    userService.getOrCreateUser("charlie","Charlie");
+
+    TripDetailResponse trip = tripService.createTrip(
+      CreateTripRequest.builder()
+        .name("Shared Camping Trip")
+        .startingDate(LocalDate.of(2026,7,1))
+        .build(),
+      "alice"
+    );
+
+    assertEquals(1,trip.getUsers().size());
+    assertEquals("alice",trip.getUsers().getFirst().getUsername());
+
+      // Bob currently has no access
+    assertThrows(ResourceNotFoundException.class,() -> tripService.getTripById(trip.getId(),"bob"));
+    assertEquals(0,tripService.getUserTrips("bob").size());
+
+      // Alice adds Bob as collaborator
+    TripDetailResponse sharedTrip = tripService.addCollaborator(
+      trip.getId(),
+      AddTripUserRequest.builder().username("bob").build(),
+      "alice"
+    );
+
+    assertEquals(2,sharedTrip.getUsers().size());
+
+      // Bob can now view and manage trip
+    TripDetailResponse bobsView = tripService.getTripById(trip.getId(),"bob");
+    assertEquals("Shared Camping Trip",bobsView.getName());
+    assertEquals(1,tripService.getUserTrips("bob").size());
+
+      // Bob can add a stop and tasks
+    StopResponse stop = stopService.addStop(
+      trip.getId(),
+      CreateStopRequest.builder().name("Bob's Chosen Stop").build(),
+      "bob"
+    );
+    assertEquals("Bob's Chosen Stop",stop.getName());
+
+    TaskResponse task = taskService.addPreTripTask(
+      trip.getId(),
+      CreateTaskRequest.builder().description("Bob's pre-trip task").build(),
+      "bob"
+    );
+    assertEquals("Bob's pre-trip task",task.getDescription());
+
+      // Charlie still has no access
+    assertThrows(ResourceNotFoundException.class,() -> tripService.getTripById(trip.getId(),"charlie"));
+  } //multiUserCollaboration_addCollaboratorAndEnforceAccess
+
+  @Test
+  void removeCollaborator_removesAccessAndProtectsLastCollaborator () {
+    userService.getOrCreateUser("alice","Alice");
+    userService.getOrCreateUser("bob","Bob");
+
+    TripDetailResponse trip = tripService.createTrip(
+      CreateTripRequest.builder()
+        .name("Multi-User Trip")
+        .startingDate(LocalDate.of(2026,8,1))
+        .build(),
+      "alice"
+    );
+
+    tripService.addCollaborator(
+      trip.getId(),
+      AddTripUserRequest.builder().username("bob").build(),
+      "alice"
+    );
+
+      // Remove Bob
+    TripDetailResponse updated = tripService.removeCollaborator(trip.getId(),"bob","alice");
+    assertEquals(1,updated.getUsers().size());
+    assertEquals("alice",updated.getUsers().getFirst().getUsername());
+
+      // Bob can no longer access
+    assertThrows(ResourceNotFoundException.class,() -> tripService.getTripById(trip.getId(),"bob"));
+
+      // Attempting to remove Alice (the last collaborator) fails
+    assertThrows(BadRequestException.class,() -> tripService.removeCollaborator(trip.getId(),"alice","alice"));
+  } //removeCollaborator_removesAccessAndProtectsLastCollaborator
 
 } //*TripServiceTest

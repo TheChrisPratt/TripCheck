@@ -17,6 +17,9 @@ describe('TripDetailComponent', () => {
     name: 'Yellowstone Trip',
     startingDate: '2026-08-01',
     endingDate: '2026-08-05',
+    users: [
+      { id: 1, username: 'alice', displayName: 'Alice' }
+    ],
     preTripTasks: [
       { id: 101, description: 'Service car', status: TaskStatus.COMPLETED, category: TaskCategory.PRE_TRIP, orderIndex: 1 }
     ],
@@ -40,6 +43,9 @@ describe('TripDetailComponent', () => {
   beforeEach(async () => {
     tripServiceSpy = jasmine.createSpyObj('TripService', [
       'getTrip',
+      'getUsers',
+      'addTripUser',
+      'removeTripUser',
       'updateTrip',
       'updateTask',
       'updateTaskStatus',
@@ -56,6 +62,7 @@ describe('TripDetailComponent', () => {
       'addDepartureTask'
     ]);
     tripServiceSpy.getTrip.and.returnValue(of(mockTripDetail));
+    tripServiceSpy.getUsers.and.returnValue(of([{ id: 1, username: 'alice' }, { id: 2, username: 'bob' }]));
     tripServiceSpy.reorderTasks.and.returnValue(of(undefined as unknown as void));
 
     await TestBed.configureTestingModule({
@@ -243,5 +250,35 @@ describe('TripDetailComponent', () => {
     });
     expect(component.taskToEdit).toBeNull();
     expect(tripServiceSpy.getTrip).toHaveBeenCalled();
+  });
+
+  it('should open access modal and handle adding and removing collaborators', () => {
+    component.onOpenAccessModal();
+    expect(component.showAccessModal).toBeTrue();
+
+    const tripWithBob = {
+      ...mockTripDetail,
+      users: [
+        { id: 1, username: 'alice', displayName: 'Alice' },
+        { id: 2, username: 'bob', displayName: 'Bob' }
+      ]
+    };
+    tripServiceSpy.addTripUser.and.returnValue(of(tripWithBob));
+
+    component.onAddCollaborator('bob');
+    expect(tripServiceSpy.addTripUser).toHaveBeenCalledWith(1, 'bob');
+    expect(component.trip()?.users?.length).toBe(2);
+
+    const tripWithoutBob = {
+      ...mockTripDetail,
+      users: [
+        { id: 1, username: 'alice', displayName: 'Alice' }
+      ]
+    };
+    tripServiceSpy.removeTripUser.and.returnValue(of(tripWithoutBob));
+
+    component.onRemoveCollaborator('bob');
+    expect(tripServiceSpy.removeTripUser).toHaveBeenCalledWith(1, 'bob');
+    expect(component.trip()?.users?.length).toBe(1);
   });
 });
