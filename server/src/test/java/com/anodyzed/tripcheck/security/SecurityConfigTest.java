@@ -60,7 +60,8 @@ class SecurityConfigTest {
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.authenticated").value(true))
-                .andExpect(jsonPath("$.username").value("testuser"));
+                .andExpect(jsonPath("$.username").value("testuser"))
+                .andExpect(jsonPath("$.displayName").value("testuser"));
     }
 
     @Test
@@ -71,6 +72,7 @@ class SecurityConfigTest {
                         .cookie(new Cookie("TRIPCHECK_TOKEN", token)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.authenticated").value(true))
-                .andExpect(jsonPath("$.username").value("cookieuser"));
+                .andExpect(jsonPath("$.username").value("cookieuser"))
+                .andExpect(jsonPath("$.displayName").value("cookieuser"));
     }
 }

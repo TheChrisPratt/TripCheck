@@ -11,7 +11,7 @@
           <a routerLink="/trips" class="nav-item">My Trips</a>
           <a routerLink="/trips/new" class="nav-item new-trip-btn">+ New Trip</a>
           <div class="user-menu">
-            <span class="username-badge">👤 {{ authService.currentUser()?.username }}</span>
+            <span class="username-badge">👤 {{ authService.currentUser()?.displayName || authService.currentUser()?.username }}</span>
             <button type="button" class="btn-logout" (click)="onLogout()">Sign Out</button>
           </div>
         } @else {

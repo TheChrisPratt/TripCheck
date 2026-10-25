@@ -30,6 +30,13 @@ public class UserService {
     }
     String normalized = username.trim().toLowerCase();
     return userRepository.findByUsernameIgnoreCase(normalized)
+      .map(existing -> {
+        if(displayName != null && !displayName.isBlank() && !displayName.trim().equals(existing.getDisplayName())) {
+          existing.setDisplayName(displayName.trim());
+          return userRepository.save(existing);
+        }
+        return existing;
+      })
       .orElseGet(() -> userRepository.save(
         User.builder()
           .username(normalized)

@@ -37,13 +37,15 @@ describe('AuthService', () => {
     service.checkAuthStatus().subscribe((user) => {
       expect(user.authenticated).toBe(true);
       expect(user.username).toBe('alice');
+      expect(user.displayName).toBe('Alice Walker');
     });
 
     const req = httpTesting.expectOne('api/auth/me');
     expect(req.request.method).toBe('GET');
-    req.flush({ authenticated: true, username: 'alice' });
+    req.flush({ authenticated: true, username: 'alice', displayName: 'Alice Walker' });
 
     expect(service.isAuthenticated()).toBe(true);
     expect(service.currentUser()?.username).toBe('alice');
+    expect(service.currentUser()?.displayName).toBe('Alice Walker');
   });
 });

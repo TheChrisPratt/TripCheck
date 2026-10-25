@@ -8,6 +8,7 @@ import * as webauthnJson from '@github/webauthn-json';
 export interface UserInfo {
   authenticated: boolean;
   username?: string;
+  displayName?: string;
   authorities?: any[];
 }
 

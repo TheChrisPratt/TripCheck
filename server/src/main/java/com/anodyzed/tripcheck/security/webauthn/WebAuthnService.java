@@ -1,5 +1,6 @@
 package com.anodyzed.tripcheck.security.webauthn;
 
+import com.anodyzed.tripcheck.model.User;
 import com.anodyzed.tripcheck.security.jwt.JwtService;
 import com.anodyzed.tripcheck.security.webauthn.dto.AssertionFinishRequest;
 import com.anodyzed.tripcheck.security.webauthn.dto.AssertionStartRequest;
@@ -32,7 +33,6 @@ public class WebAuthnService {
   private final UserService userService;
   private final String rpId;
   private final String rpName;
-  private final String origin;
   private final SecureRandom random = new SecureRandom();
 
   private final Map<String,String> registrationChallenges = new ConcurrentHashMap<>();
@@ -45,12 +45,11 @@ public class WebAuthnService {
     UserService userService,
     @Value("${app.webauthn.rp-id:localhost}") String rpId,
     @Value("${app.webauthn.rp-name:TripCheck}") String rpName,
-    @Value("${app.webauthn.origin:http://localhost:4200}") String origin) {
+    @Value("${app.webauthn.origin:http://localhost:4200}") String ignoredOrigin) {
     this.jwtService = jwtService;
     this.userService = userService;
     this.rpId = rpId;
     this.rpName = rpName;
-    this.origin = origin;
   } //WebAuthnService
 
   private String generateBase64UrlChallenge () {
@@ -117,7 +116,10 @@ public class WebAuthnService {
     userCredentials.computeIfAbsent(username,k -> new ArrayList<>()).add(credentialId);
 
       // Persist or update user in database
-    userService.getOrCreateUser(username,displayName);
+    User user = userService.getOrCreateUser(username,displayName);
+    String effectiveDisplayName = (user != null && user.getDisplayName() != null && !user.getDisplayName().isBlank())
+      ? user.getDisplayName()
+      : username;
 
     String token = jwtService.generateToken(username);
     ResponseCookie cookie = jwtService.generateAuthCookie(token);
@@ -125,6 +127,7 @@ public class WebAuthnService {
     AuthResponse authResponse = AuthResponse.builder()
       .authenticated(true)
       .username(username)
+      .displayName(effectiveDisplayName)
       .token(token)
       .message("Registration successful")
       .build();
@@ -166,7 +169,10 @@ public class WebAuthnService {
     }
 
       // Ensure user exists in database
-    userService.getOrCreateUser(username,null);
+    User user = userService.getOrCreateUser(username,null);
+    String effectiveDisplayName = (user != null && user.getDisplayName() != null && !user.getDisplayName().isBlank())
+      ? user.getDisplayName()
+      : username;
 
     String token = jwtService.generateToken(username);
     ResponseCookie cookie = jwtService.generateAuthCookie(token);
@@ -174,6 +180,7 @@ public class WebAuthnService {
     AuthResponse authResponse = AuthResponse.builder()
       .authenticated(true)
       .username(username)
+      .displayName(effectiveDisplayName)
       .token(token)
       .message("Authentication successful")
       .build();

@@ -2,12 +2,15 @@ package com.anodyzed.tripcheck.security.webauthn;
 
 import jakarta.validation.Valid;
 
+import com.anodyzed.tripcheck.model.User;
 import com.anodyzed.tripcheck.security.webauthn.dto.AssertionFinishRequest;
 import com.anodyzed.tripcheck.security.webauthn.dto.AssertionStartRequest;
 import com.anodyzed.tripcheck.security.webauthn.dto.AuthResponse;
 import com.anodyzed.tripcheck.security.webauthn.dto.RegistrationFinishRequest;
 import com.anodyzed.tripcheck.security.webauthn.dto.RegistrationStartRequest;
+import com.anodyzed.tripcheck.services.UserService;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
@@ -23,9 +26,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class WebAuthnController {
 
   private final WebAuthnService webAuthnService;
+  private final UserService userService;
 
-  public WebAuthnController (WebAuthnService webAuthnService) {
+  public WebAuthnController (WebAuthnService webAuthnService,UserService userService) {
     this.webAuthnService = webAuthnService;
+    this.userService = userService;
   } //WebAuthnController
 
   @PostMapping("/webauthn/register-request")
@@ -58,11 +63,18 @@ public class WebAuthnController {
     if(authentication == null || !authentication.isAuthenticated()) {
       return ResponseEntity.ok(Map.of("authenticated",false));
     }
-    return ResponseEntity.ok(Map.of(
-      "authenticated",true,
-      "username",authentication.getName(),
-      "authorities",authentication.getAuthorities()
-    ));
+    String username = authentication.getName();
+    User user = userService.getUserByUsername(username);
+    String displayName = (user != null && user.getDisplayName() != null && !user.getDisplayName().isBlank())
+      ? user.getDisplayName()
+      : username;
+
+    Map<String,Object> response = new HashMap<>();
+    response.put("authenticated",true);
+    response.put("username",username);
+    response.put("displayName",displayName);
+    response.put("authorities",authentication.getAuthorities());
+    return ResponseEntity.ok(response);
   } //getCurrentUser
 
 } //*WebAuthnController
