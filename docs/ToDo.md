@@ -8,7 +8,7 @@
 - [x] Add additional Stop Details Hookups/Check-in/Check-out/Amenities/Services/Door|Gate Codes
 - [x] Add the ability to edit the Task descriptions
 - [x] Allow access from multiple accounts
-- [ ] Add Rearrange Stops Functionality
+- [x] Add Rearrange Stops Functionality
 - [ ] Add Clone Trip Functionality
 - [ ] See if we can calculate the timezone, elevation & weather 
 - [ ] Allow filtering Trips by Past/Future

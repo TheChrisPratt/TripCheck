@@ -64,6 +64,10 @@ export class TripService {
     return this.http.delete<void>(`${this.stopUrl}/${stopId}`);
   }
 
+  reorderStops(stopIds: number[]): Observable<void> {
+    return this.http.put<void>(`${this.stopUrl}/reorder`, { stopIds });
+  }
+
   getAmenities(): Observable<string[]> {
     return this.http.get<string[]>(`${this.stopUrl}/amenities`);
   }

@@ -451,4 +451,54 @@ class TripResourceTest {
       .andExpect(jsonPath("$.message").value("Cannot remove the last collaborator from the trip"));
   } //tripCollaborators_addAndRemoveViaRestEndpoints
 
+  @Test
+  void reorderStops_viaRestEndpoint () throws Exception {
+    String token = jwtService.generateToken("stopuser");
+    Cookie cookie = new Cookie("TRIPCHECK_TOKEN",token);
+
+    MvcResult tripResult = mockMvc.perform(post("/api/trips")
+        .cookie(cookie)
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"name\":\"Road Trip\",\"startingDate\":\"2026-07-01\"}"))
+      .andExpect(status().isCreated())
+      .andReturn();
+    long tripId = ((Number)objectMapper.readValue(tripResult.getResponse().getContentAsString(),Map.class).get("id")).longValue();
+
+    MvcResult s1 = mockMvc.perform(post("/api/trips/" + tripId + "/stops")
+        .cookie(cookie)
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"name\":\"Stop A\",\"numberOfNights\":2}"))
+      .andExpect(status().isCreated())
+      .andReturn();
+    long stop1Id = ((Number)objectMapper.readValue(s1.getResponse().getContentAsString(),Map.class).get("id")).longValue();
+
+    MvcResult s2 = mockMvc.perform(post("/api/trips/" + tripId + "/stops")
+        .cookie(cookie)
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"name\":\"Stop B\",\"numberOfNights\":3}"))
+      .andExpect(status().isCreated())
+      .andReturn();
+    long stop2Id = ((Number)objectMapper.readValue(s2.getResponse().getContentAsString(),Map.class).get("id")).longValue();
+
+      // Reorder stops: [stop2Id, stop1Id]
+    mockMvc.perform(put("/api/stops/reorder")
+        .cookie(cookie)
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"stopIds\":[%d,%d]}".formatted(stop2Id,stop1Id)))
+      .andExpect(status().isNoContent());
+
+      // Fetch trip details and verify stops ordering and dates
+    mockMvc.perform(get("/api/trips/" + tripId).cookie(cookie))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.stops[0].id").value(stop2Id))
+      .andExpect(jsonPath("$.stops[0].name").value("Stop B"))
+      .andExpect(jsonPath("$.stops[0].orderIndex").value(0))
+      .andExpect(jsonPath("$.stops[0].stopDate").value("2026-07-01"))
+      .andExpect(jsonPath("$.stops[1].id").value(stop1Id))
+      .andExpect(jsonPath("$.stops[1].name").value("Stop A"))
+      .andExpect(jsonPath("$.stops[1].orderIndex").value(1))
+      .andExpect(jsonPath("$.stops[1].stopDate").value("2026-07-04"))
+      .andExpect(jsonPath("$.endingDate").value("2026-07-06"));
+  } //reorderStops_viaRestEndpoint
+
 } //*TripResourceTest

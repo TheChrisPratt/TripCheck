@@ -755,4 +755,74 @@ class TripServiceTest {
     assertThrows(BadRequestException.class,() -> tripService.removeCollaborator(trip.getId(),"alice","alice"));
   } //removeCollaborator_removesAccessAndProtectsLastCollaborator
 
+  @Test
+  void reorderStops_updatesOrderIndicesAndRecalculatesDates () {
+    TripDetailResponse trip = tripService.createTrip(
+      CreateTripRequest.builder()
+        .name("Pacific Coast Tour")
+        .startingDate(LocalDate.of(2026,6,1))
+        .build(),
+      "alice"
+    );
+
+    StopResponse stop1 = stopService.addStop(
+      trip.getId(),
+      CreateStopRequest.builder().name("Seattle").numberOfNights(2).build(),
+      "alice"
+    );
+    StopResponse stop2 = stopService.addStop(
+      trip.getId(),
+      CreateStopRequest.builder().name("Portland").numberOfNights(3).build(),
+      "alice"
+    );
+    StopResponse stop3 = stopService.addStop(
+      trip.getId(),
+      CreateStopRequest.builder().name("San Francisco").numberOfNights(4).build(),
+      "alice"
+    );
+
+    TripDetailResponse initialTrip = tripService.getTripById(trip.getId(),"alice");
+    assertEquals(3,initialTrip.getStops().size());
+    assertEquals("Seattle",initialTrip.getStops().getFirst().getName());
+    assertEquals(LocalDate.of(2026,6,1),initialTrip.getStops().get(0).getStopDate());
+    assertEquals(0,initialTrip.getStops().get(0).getOrderIndex());
+
+    assertEquals("Portland",initialTrip.getStops().get(1).getName());
+    assertEquals(LocalDate.of(2026,6,3),initialTrip.getStops().get(1).getStopDate());
+    assertEquals(1,initialTrip.getStops().get(1).getOrderIndex());
+
+    assertEquals("San Francisco",initialTrip.getStops().get(2).getName());
+    assertEquals(LocalDate.of(2026,6,6),initialTrip.getStops().get(2).getStopDate());
+    assertEquals(2,initialTrip.getStops().get(2).getOrderIndex());
+    assertEquals(LocalDate.of(2026,6,10),initialTrip.getEndingDate());
+
+      // Reorder: Move San Francisco to first position [stop3, stop1, stop2]
+    stopService.reorderStops(List.of(stop3.getId(),stop1.getId(),stop2.getId()),"alice");
+
+    TripDetailResponse reorderedTrip = tripService.getTripById(trip.getId(),"alice");
+    assertEquals(3,reorderedTrip.getStops().size());
+
+      // San Francisco is now index 0, starts June 1 (4 nights) -> ends June 5
+    assertEquals("San Francisco",reorderedTrip.getStops().getFirst().getName());
+    assertEquals(0,reorderedTrip.getStops().get(0).getOrderIndex());
+    assertEquals(LocalDate.of(2026,6,1),reorderedTrip.getStops().get(0).getStopDate());
+
+      // Seattle is now index 1, starts June 5 (2 nights) -> ends June 7
+    assertEquals("Seattle",reorderedTrip.getStops().get(1).getName());
+    assertEquals(1,reorderedTrip.getStops().get(1).getOrderIndex());
+    assertEquals(LocalDate.of(2026,6,5),reorderedTrip.getStops().get(1).getStopDate());
+
+      // Portland is now index 2, starts June 7 (3 nights) -> ends June 10
+    assertEquals("Portland",reorderedTrip.getStops().get(2).getName());
+    assertEquals(2,reorderedTrip.getStops().get(2).getOrderIndex());
+    assertEquals(LocalDate.of(2026,6,7),reorderedTrip.getStops().get(2).getStopDate());
+
+    assertEquals(LocalDate.of(2026,6,10),reorderedTrip.getEndingDate());
+
+      // User isolation check: Bob cannot reorder Alice's trip stops
+    assertThrows(ResourceNotFoundException.class,() ->
+      stopService.reorderStops(List.of(stop1.getId(),stop2.getId(),stop3.getId()),"bob")
+    );
+  } //reorderStops_updatesOrderIndicesAndRecalculatesDates
+
 } //*TripServiceTest

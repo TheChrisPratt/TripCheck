@@ -50,6 +50,7 @@ describe('TripDetailComponent', () => {
       'updateTask',
       'updateTaskStatus',
       'reorderTasks',
+      'reorderStops',
       'deleteTask',
       'addPreTripTask',
       'addDepartureDayTask',
@@ -64,6 +65,7 @@ describe('TripDetailComponent', () => {
     tripServiceSpy.getTrip.and.returnValue(of(mockTripDetail));
     tripServiceSpy.getUsers.and.returnValue(of([{ id: 1, username: 'alice' }, { id: 2, username: 'bob' }]));
     tripServiceSpy.reorderTasks.and.returnValue(of(undefined as unknown as void));
+    tripServiceSpy.reorderStops.and.returnValue(of(undefined as unknown as void));
 
     await TestBed.configureTestingModule({
       imports: [TripDetailComponent],
@@ -280,5 +282,73 @@ describe('TripDetailComponent', () => {
     component.onRemoveCollaborator('bob');
     expect(tripServiceSpy.removeTripUser).toHaveBeenCalledWith(1, 'bob');
     expect(component.trip()?.users?.length).toBe(1);
+  });
+
+  it('should reorder stops via drag and drop, recalculate dates, and call tripService.reorderStops', () => {
+    const tripWithMultipleStops = {
+      ...mockTripDetail,
+      startingDate: '2026-08-01',
+      stops: [
+        {
+          id: 201,
+          name: 'Stop 1',
+          stopDate: '2026-08-01',
+          numberOfNights: 2,
+          orderIndex: 0,
+          arrivalTasks: [],
+          departureTasks: []
+        },
+        {
+          id: 202,
+          name: 'Stop 2',
+          stopDate: '2026-08-03',
+          numberOfNights: 3,
+          orderIndex: 1,
+          arrivalTasks: [],
+          departureTasks: []
+        },
+        {
+          id: 203,
+          name: 'Stop 3',
+          stopDate: '2026-08-06',
+          numberOfNights: 1,
+          orderIndex: 2,
+          arrivalTasks: [],
+          departureTasks: []
+        }
+      ]
+    };
+    component.trip.set(tripWithMultipleStops);
+
+    const dragStartEvent = new DragEvent('dragstart');
+    component.onStopDragStart(dragStartEvent, 2);
+    expect(component.draggedStopIndex).toBe(2);
+
+    const dropEvent = new DragEvent('drop');
+    component.onStopDrop(dropEvent, 0);
+
+    const updatedStops = component.trip()?.stops;
+    expect(updatedStops).toBeTruthy();
+    expect(updatedStops?.length).toBe(3);
+
+    // Stop 3 is now first
+    expect(updatedStops![0].id).toBe(203);
+    expect(updatedStops![0].orderIndex).toBe(0);
+    expect(updatedStops![0].stopDate).toBe('2026-08-01');
+
+    // Stop 1 is second (2026-08-01 + 1 night = 2026-08-02)
+    expect(updatedStops![1].id).toBe(201);
+    expect(updatedStops![1].orderIndex).toBe(1);
+    expect(updatedStops![1].stopDate).toBe('2026-08-02');
+
+    // Stop 2 is third (2026-08-02 + 2 nights = 2026-08-04)
+    expect(updatedStops![2].id).toBe(202);
+    expect(updatedStops![2].orderIndex).toBe(2);
+    expect(updatedStops![2].stopDate).toBe('2026-08-04');
+
+    // Ending date: 2026-08-04 + 3 nights = 2026-08-07
+    expect(component.trip()?.endingDate).toBe('2026-08-07');
+
+    expect(tripServiceSpy.reorderStops).toHaveBeenCalledWith([203, 201, 202]);
   });
 });

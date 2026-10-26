@@ -10,6 +10,7 @@ import com.anodyzed.tripcheck.model.Trip;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 @Getter
@@ -60,7 +61,9 @@ public class TripDetailResponse {
         ? trip.getReturnDayTasks().stream().map(TaskResponse::fromEntity).toList()
         : new ArrayList<>())
       .stops(trip.getStops() != null
-        ? trip.getStops().stream().map(StopResponse::fromEntity).toList()
+        ? trip.getStops().stream()
+            .sorted(Comparator.comparing(s -> s.getOrderIndex() != null ? s.getOrderIndex() : 0))
+            .map(StopResponse::fromEntity).toList()
         : new ArrayList<>())
       .build();
   } //fromEntity

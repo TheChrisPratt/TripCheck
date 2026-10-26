@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 
 import com.anodyzed.tripcheck.dto.CloneStopRequest;
 import com.anodyzed.tripcheck.dto.CreateTaskRequest;
+import com.anodyzed.tripcheck.dto.ReorderStopsRequest;
 import com.anodyzed.tripcheck.dto.StopResponse;
 import com.anodyzed.tripcheck.dto.TaskResponse;
 import com.anodyzed.tripcheck.dto.UpdateStopRequest;
@@ -83,6 +84,14 @@ public class StopResource {
     stopService.deleteStop(stopId,getUserId(authentication));
     return ResponseEntity.noContent().build();
   } //deleteStop
+
+  @PutMapping("/reorder")
+  public ResponseEntity<Void> reorderStops (
+    @Valid @RequestBody ReorderStopsRequest request,
+    Authentication authentication) {
+    stopService.reorderStops(request.getStopIds(),getUserId(authentication));
+    return ResponseEntity.noContent().build();
+  } //reorderStops
 
   @PostMapping("/{stopId}/tasks/arrival")
   public ResponseEntity<TaskResponse> addArrivalTask (

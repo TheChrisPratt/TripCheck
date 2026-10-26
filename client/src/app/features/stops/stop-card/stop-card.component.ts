@@ -11,10 +11,38 @@ import { TaskModalComponent } from '../../tasks/task-modal/task-modal.component'
   standalone: true,
   imports: [CommonModule, TaskItemComponent, TaskModalComponent],
   template: `
-    <div class="stop-card">
+    <div
+      class="stop-card"
+      [class.is-collapsed]="isCollapsed()"
+      [class.is-dragging]="isDragging"
+      [class.is-drag-over]="isDragOver"
+      (dragover)="onStopDragOver($event)"
+      (dragleave)="onStopDragLeave($event)"
+      (drop)="onStopDrop($event)"
+    >
       <div class="stop-header">
         <div class="stop-title-area">
-          <div class="stop-badge">Stop #{{ stop.orderIndex + 1 }}</div>
+          <div
+            class="drag-handle stop-drag-handle"
+            draggable="true"
+            (dragstart)="onStopDragStart($event)"
+            (dragend)="onStopDragEnd()"
+            title="Drag to reorder stop"
+            aria-label="Drag to reorder stop"
+          >
+            <span class="handle-icon" aria-hidden="true">&#x283F;</span>
+          </div>
+          <button
+            type="button"
+            class="stop-toggle-btn"
+            (click)="toggleCollapse()"
+            [attr.aria-expanded]="!isCollapsed()"
+            [attr.aria-label]="isCollapsed() ? 'Expand stop' : 'Collapse stop'"
+            title="{{ isCollapsed() ? 'Expand stop' : 'Collapse stop' }}"
+          >
+            <span class="collapse-icon">{{ isCollapsed() ? '▶' : '▼' }}</span>
+          </button>
+          <div class="stop-badge">Stop #{{ (stop.orderIndex !== undefined && stop.orderIndex !== null) ? stop.orderIndex + 1 : index + 1 }}</div>
           <h3 class="stop-name">{{ stop.name }}</h3>
           <div class="stop-date-badge">{{ stop.stopDate | date:'mediumDate' }} &bull; {{ stop.numberOfNights }} {{ stop.numberOfNights === 1 ? 'night' : 'nights' }}</div>
         </div>
@@ -31,173 +59,175 @@ import { TaskModalComponent } from '../../tasks/task-modal/task-modal.component'
         </div>
       </div>
 
-      <div class="stop-details-grid">
-        @if (stop.location) {
-          <div class="detail-item">
-            <span class="detail-label">Location:</span>
-            <span class="detail-value">{{ stop.location }}</span>
-          </div>
-        }
-        @if (stop.checkinTime) {
-          <div class="detail-item">
-            <span class="detail-label">Check-in:</span>
-            <span class="detail-value">{{ formatTime(stop.checkinTime) }}</span>
-          </div>
-        }
-        @if (stop.checkoutTime) {
-          <div class="detail-item">
-            <span class="detail-label">Check-out:</span>
-            <span class="detail-value">{{ formatTime(stop.checkoutTime) }}</span>
-          </div>
-        }
-        @if (stop.telephoneNumber) {
-          <div class="detail-item">
-            <span class="detail-label">Phone:</span>
-            <a [href]="'tel:' + stop.telephoneNumber" class="detail-link">{{ stop.telephoneNumber }}</a>
-          </div>
-        }
-        @if (stop.webAddress) {
-          <div class="detail-item">
-            <span class="detail-label">Website:</span>
-            <a [href]="stop.webAddress" target="_blank" rel="noopener" class="detail-link">{{ stop.webAddress }}</a>
-          </div>
-        }
-        @if (stop.confirmationCode) {
-          <div class="detail-item">
-            <span class="detail-label">Conf Code:</span>
-            <span class="detail-badge">{{ stop.confirmationCode }}</span>
-          </div>
-        }
-        @if (stop.siteNumber) {
-          <div class="detail-item">
-            <span class="detail-label">Site / Room:</span>
-            <span class="detail-value">{{ stop.siteNumber }}</span>
-          </div>
-        }
-        @if (stop.codes) {
-          <div class="detail-item full-width">
-            <span class="detail-label">Codes:</span>
-            <span class="codes-badge">{{ stop.codes }}</span>
-          </div>
-        }
-        @if (stop.hookups && stop.hookups.length > 0) {
-          <div class="detail-item full-width">
-            <span class="detail-label">Hookups:</span>
-            <div class="hookup-badges">
-              @for (hookup of stop.hookups; track hookup) {
-                <span class="hookup-badge">{{ hookup }}</span>
-              }
+      @if (!isCollapsed()) {
+        <div class="stop-details-grid">
+          @if (stop.location) {
+            <div class="detail-item">
+              <span class="detail-label">Location:</span>
+              <span class="detail-value">{{ stop.location }}</span>
             </div>
-          </div>
-        }
-        @if (stop.amenities && stop.amenities.length > 0) {
-          <div class="detail-item full-width">
-            <span class="detail-label">Amenities:</span>
-            <div class="tag-chips-list">
-              @for (amenity of stop.amenities; track amenity) {
-                <span class="feature-chip amenity-chip">{{ amenity }}</span>
-              }
+          }
+          @if (stop.checkinTime) {
+            <div class="detail-item">
+              <span class="detail-label">Check-in:</span>
+              <span class="detail-value">{{ formatTime(stop.checkinTime) }}</span>
             </div>
-          </div>
-        }
-        @if (stop.services && stop.services.length > 0) {
-          <div class="detail-item full-width">
-            <span class="detail-label">Services:</span>
-            <div class="tag-chips-list">
-              @for (service of stop.services; track service) {
-                <span class="feature-chip service-chip">{{ service }}</span>
-              }
+          }
+          @if (stop.checkoutTime) {
+            <div class="detail-item">
+              <span class="detail-label">Check-out:</span>
+              <span class="detail-value">{{ formatTime(stop.checkoutTime) }}</span>
             </div>
-          </div>
-        }
-      </div>
+          }
+          @if (stop.telephoneNumber) {
+            <div class="detail-item">
+              <span class="detail-label">Phone:</span>
+              <a [href]="'tel:' + stop.telephoneNumber" class="detail-link">{{ stop.telephoneNumber }}</a>
+            </div>
+          }
+          @if (stop.webAddress) {
+            <div class="detail-item">
+              <span class="detail-label">Website:</span>
+              <a [href]="stop.webAddress" target="_blank" rel="noopener" class="detail-link">{{ stop.webAddress }}</a>
+            </div>
+          }
+          @if (stop.confirmationCode) {
+            <div class="detail-item">
+              <span class="detail-label">Conf Code:</span>
+              <span class="detail-badge">{{ stop.confirmationCode }}</span>
+            </div>
+          }
+          @if (stop.siteNumber) {
+            <div class="detail-item">
+              <span class="detail-label">Site / Room:</span>
+              <span class="detail-value">{{ stop.siteNumber }}</span>
+            </div>
+          }
+          @if (stop.codes) {
+            <div class="detail-item full-width">
+              <span class="detail-label">Codes:</span>
+              <span class="codes-badge">{{ stop.codes }}</span>
+            </div>
+          }
+          @if (stop.hookups && stop.hookups.length > 0) {
+            <div class="detail-item full-width">
+              <span class="detail-label">Hookups:</span>
+              <div class="hookup-badges">
+                @for (hookup of stop.hookups; track hookup) {
+                  <span class="hookup-badge">{{ hookup }}</span>
+                }
+              </div>
+            </div>
+          }
+          @if (stop.amenities && stop.amenities.length > 0) {
+            <div class="detail-item full-width">
+              <span class="detail-label">Amenities:</span>
+              <div class="tag-chips-list">
+                @for (amenity of stop.amenities; track amenity) {
+                  <span class="feature-chip amenity-chip">{{ amenity }}</span>
+                }
+              </div>
+            </div>
+          }
+          @if (stop.services && stop.services.length > 0) {
+            <div class="detail-item full-width">
+              <span class="detail-label">Services:</span>
+              <div class="tag-chips-list">
+                @for (service of stop.services; track service) {
+                  <span class="feature-chip service-chip">{{ service }}</span>
+                }
+              </div>
+            </div>
+          }
+        </div>
 
-      @if (stop.notes) {
-        <div class="stop-notes">
-          <span class="detail-label">Notes:</span>
-          <p>{{ stop.notes }}</p>
+        @if (stop.notes) {
+          <div class="stop-notes">
+            <span class="detail-label">Notes:</span>
+            <p>{{ stop.notes }}</p>
+          </div>
+        }
+
+        <div class="stop-tasks-container">
+          <!-- Arrival Tasks -->
+          <div class="tasks-section" [class.is-collapsed]="isArrivalCollapsed()">
+            <div class="section-header">
+              <button
+                type="button"
+                class="task-toggle-btn"
+                (click)="toggleArrival()"
+                [attr.aria-expanded]="!isArrivalCollapsed()"
+                aria-label="Toggle Arrival Tasks"
+              >
+                <span class="collapse-icon">{{ isArrivalCollapsed() ? '▶' : '▼' }}</span>
+                <h4>Arrival Tasks ({{ completedArrivalTasksCount }}/{{ stop.arrivalTasks.length }})</h4>
+              </button>
+              <button type="button" class="btn-add-task" (click)="showArrivalModal = true">+ Add Task</button>
+            </div>
+            @if (!isArrivalCollapsed()) {
+              <div class="tasks-list">
+                @for (task of stop.arrivalTasks; track task.id; let i = $index) {
+                  <app-task-item
+                    [task]="task"
+                    [index]="i"
+                    [isDragging]="draggedState?.listType === 'arrival' && draggedState?.index === i"
+                    [isDragOver]="dragOverState?.listType === 'arrival' && dragOverState?.index === i"
+                    (statusChange)="onTaskStatusChange($event)"
+                    (editTask)="onTaskEdit($event)"
+                    (deleteTask)="onTaskDelete($event)"
+                    (itemDragStart)="onTaskDragStart($event.event, 'arrival', i)"
+                    (itemDragOver)="onTaskDragOver($event.event, 'arrival', i)"
+                    (itemDragLeave)="onTaskDragLeave($event.event, 'arrival', i)"
+                    (itemDrop)="onTaskDrop($event.event, 'arrival', i)"
+                    (itemDragEnd)="onTaskDragEnd()"
+                  />
+                } @empty {
+                  <div class="empty-tasks">No arrival tasks added.</div>
+                }
+              </div>
+            }
+          </div>
+
+          <!-- Departure Tasks -->
+          <div class="tasks-section" [class.is-collapsed]="isDepartureCollapsed()">
+            <div class="section-header">
+              <button
+                type="button"
+                class="task-toggle-btn"
+                (click)="toggleDeparture()"
+                [attr.aria-expanded]="!isDepartureCollapsed()"
+                aria-label="Toggle Departure Tasks"
+              >
+                <span class="collapse-icon">{{ isDepartureCollapsed() ? '▶' : '▼' }}</span>
+                <h4>Departure Tasks ({{ completedDepartureTasksCount }}/{{ stop.departureTasks.length }})</h4>
+              </button>
+              <button type="button" class="btn-add-task" (click)="showDepartureModal = true">+ Add Task</button>
+            </div>
+            @if (!isDepartureCollapsed()) {
+              <div class="tasks-list">
+                @for (task of stop.departureTasks; track task.id; let i = $index) {
+                  <app-task-item
+                    [task]="task"
+                    [index]="i"
+                    [isDragging]="draggedState?.listType === 'departure' && draggedState?.index === i"
+                    [isDragOver]="dragOverState?.listType === 'departure' && dragOverState?.index === i"
+                    (statusChange)="onTaskStatusChange($event)"
+                    (editTask)="onTaskEdit($event)"
+                    (deleteTask)="onTaskDelete($event)"
+                    (itemDragStart)="onTaskDragStart($event.event, 'departure', i)"
+                    (itemDragOver)="onTaskDragOver($event.event, 'departure', i)"
+                    (itemDragLeave)="onTaskDragLeave($event.event, 'departure', i)"
+                    (itemDrop)="onTaskDrop($event.event, 'departure', i)"
+                    (itemDragEnd)="onTaskDragEnd()"
+                  />
+                } @empty {
+                  <div class="empty-tasks">No departure tasks added.</div>
+                }
+              </div>
+            }
+          </div>
         </div>
       }
-
-      <div class="stop-tasks-container">
-        <!-- Arrival Tasks -->
-        <div class="tasks-section" [class.is-collapsed]="isArrivalCollapsed()">
-          <div class="section-header">
-            <button
-              type="button"
-              class="task-toggle-btn"
-              (click)="toggleArrival()"
-              [attr.aria-expanded]="!isArrivalCollapsed()"
-              aria-label="Toggle Arrival Tasks"
-            >
-              <span class="collapse-icon">{{ isArrivalCollapsed() ? '▶' : '▼' }}</span>
-              <h4>Arrival Tasks ({{ completedArrivalTasksCount }}/{{ stop.arrivalTasks.length }})</h4>
-            </button>
-            <button type="button" class="btn-add-task" (click)="showArrivalModal = true">+ Add Task</button>
-          </div>
-          @if (!isArrivalCollapsed()) {
-            <div class="tasks-list">
-              @for (task of stop.arrivalTasks; track task.id; let i = $index) {
-                <app-task-item
-                  [task]="task"
-                  [index]="i"
-                  [isDragging]="draggedState?.listType === 'arrival' && draggedState?.index === i"
-                  [isDragOver]="dragOverState?.listType === 'arrival' && dragOverState?.index === i"
-                  (statusChange)="onTaskStatusChange($event)"
-                  (editTask)="onTaskEdit($event)"
-                  (deleteTask)="onTaskDelete($event)"
-                  (itemDragStart)="onTaskDragStart($event.event, 'arrival', i)"
-                  (itemDragOver)="onTaskDragOver($event.event, 'arrival', i)"
-                  (itemDragLeave)="onTaskDragLeave($event.event, 'arrival', i)"
-                  (itemDrop)="onTaskDrop($event.event, 'arrival', i)"
-                  (itemDragEnd)="onTaskDragEnd()"
-                />
-              } @empty {
-                <div class="empty-tasks">No arrival tasks added.</div>
-              }
-            </div>
-          }
-        </div>
-
-        <!-- Departure Tasks -->
-        <div class="tasks-section" [class.is-collapsed]="isDepartureCollapsed()">
-          <div class="section-header">
-            <button
-              type="button"
-              class="task-toggle-btn"
-              (click)="toggleDeparture()"
-              [attr.aria-expanded]="!isDepartureCollapsed()"
-              aria-label="Toggle Departure Tasks"
-            >
-              <span class="collapse-icon">{{ isDepartureCollapsed() ? '▶' : '▼' }}</span>
-              <h4>Departure Tasks ({{ completedDepartureTasksCount }}/{{ stop.departureTasks.length }})</h4>
-            </button>
-            <button type="button" class="btn-add-task" (click)="showDepartureModal = true">+ Add Task</button>
-          </div>
-          @if (!isDepartureCollapsed()) {
-            <div class="tasks-list">
-              @for (task of stop.departureTasks; track task.id; let i = $index) {
-                <app-task-item
-                  [task]="task"
-                  [index]="i"
-                  [isDragging]="draggedState?.listType === 'departure' && draggedState?.index === i"
-                  [isDragOver]="dragOverState?.listType === 'departure' && dragOverState?.index === i"
-                  (statusChange)="onTaskStatusChange($event)"
-                  (editTask)="onTaskEdit($event)"
-                  (deleteTask)="onTaskDelete($event)"
-                  (itemDragStart)="onTaskDragStart($event.event, 'departure', i)"
-                  (itemDragOver)="onTaskDragOver($event.event, 'departure', i)"
-                  (itemDragLeave)="onTaskDragLeave($event.event, 'departure', i)"
-                  (itemDrop)="onTaskDrop($event.event, 'departure', i)"
-                  (itemDragEnd)="onTaskDragEnd()"
-                />
-              } @empty {
-                <div class="empty-tasks">No departure tasks added.</div>
-              }
-            </div>
-          }
-        </div>
-      </div>
 
       <!-- Arrival Task Modal -->
       @if (showArrivalModal) {
@@ -226,14 +256,73 @@ import { TaskModalComponent } from '../../tasks/task-modal/task-modal.component'
       padding: 20px;
       margin-bottom: 24px;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+      transition: all 0.2s ease;
+    }
+    .stop-card.is-collapsed {
+      padding: 16px 20px;
+    }
+    .stop-card.is-collapsed .stop-header {
+      margin-bottom: 0;
+      padding-bottom: 0;
+      border-bottom: none;
+    }
+    .stop-card.is-dragging {
+      opacity: 0.5;
+      background: #f8fafc;
+      border: 2px dashed #3b82f6;
+    }
+    .stop-card.is-drag-over {
+      border-top: 3px solid #2563eb;
+      background: #f0fdf4;
+      box-shadow: 0 -4px 6px rgba(37, 99, 235, 0.15);
     }
     .stop-header {
       display: flex;
       justify-content: space-between;
-      align-items: flex-start;
+      align-items: center;
       margin-bottom: 16px;
       border-bottom: 1px solid #f1f5f9;
       padding-bottom: 14px;
+    }
+    .stop-title-area {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .stop-drag-handle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px 6px;
+      cursor: grab;
+      user-select: none;
+      color: #94a3b8;
+      border-radius: 4px;
+      transition: color 0.15s ease, background-color 0.15s ease;
+    }
+    .stop-drag-handle:hover {
+      color: #334155;
+      background-color: #f1f5f9;
+    }
+    .stop-drag-handle:active {
+      cursor: grabbing;
+    }
+    .stop-toggle-btn {
+      background: none;
+      border: none;
+      padding: 4px 6px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #64748b;
+      transition: background-color 0.15s ease, color 0.15s ease;
+    }
+    .stop-toggle-btn:hover {
+      background-color: #f1f5f9;
+      color: #0f172a;
     }
     .stop-header-actions {
       display: flex;
@@ -268,10 +357,9 @@ import { TaskModalComponent } from '../../tasks/task-modal/task-modal.component'
       color: #2563eb;
       padding: 2px 8px;
       border-radius: 4px;
-      margin-bottom: 4px;
     }
     .stop-name {
-      margin: 2px 0 6px 0;
+      margin: 0;
       font-size: 1.35rem;
       font-weight: 600;
       color: #0f172a;
@@ -488,6 +576,10 @@ export class StopCardComponent {
   private tripService = inject(TripService);
 
   @Input({ required: true }) stop!: Stop;
+  @Input() index: number = 0;
+  @Input() isDragging: boolean = false;
+  @Input() isDragOver: boolean = false;
+
   @Output() deleteStop = new EventEmitter<number>();
   @Output() cloneStop = new EventEmitter<Stop>();
   @Output() editStop = new EventEmitter<Stop>();
@@ -497,6 +589,11 @@ export class StopCardComponent {
   @Output() taskEdit = new EventEmitter<Task>();
   @Output() taskDelete = new EventEmitter<Task>();
   @Output() taskReorder = new EventEmitter<{ stopId: number; listType: string; tasks: Task[] }>();
+  @Output() stopDragStart = new EventEmitter<{ event: DragEvent; index: number }>();
+  @Output() stopDragOver = new EventEmitter<{ event: DragEvent; index: number }>();
+  @Output() stopDragLeave = new EventEmitter<{ event: DragEvent; index: number }>();
+  @Output() stopDrop = new EventEmitter<{ event: DragEvent; index: number }>();
+  @Output() stopDragEnd = new EventEmitter<void>();
 
   showArrivalModal = false;
   showDepartureModal = false;
@@ -504,8 +601,13 @@ export class StopCardComponent {
   draggedState: { listType: string; index: number } | null = null;
   dragOverState: { listType: string; index: number } | null = null;
 
+  isCollapsed = signal<boolean>(false);
   isArrivalCollapsed = signal<boolean>(true);
   isDepartureCollapsed = signal<boolean>(true);
+
+  toggleCollapse(): void {
+    this.isCollapsed.update((v) => !v);
+  }
 
   toggleArrival(): void {
     this.isArrivalCollapsed.update((v) => !v);
@@ -521,6 +623,35 @@ export class StopCardComponent {
 
   get completedDepartureTasksCount(): number {
     return this.stop.departureTasks?.filter((t) => t.status === TaskStatus.COMPLETED).length || 0;
+  }
+
+  onStopDragStart(event: DragEvent): void {
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', `${this.index}`);
+    }
+    this.stopDragStart.emit({ event, index: this.index });
+  }
+
+  onStopDragOver(event: DragEvent): void {
+    event.preventDefault();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'move';
+    }
+    this.stopDragOver.emit({ event, index: this.index });
+  }
+
+  onStopDragLeave(event: DragEvent): void {
+    this.stopDragLeave.emit({ event, index: this.index });
+  }
+
+  onStopDrop(event: DragEvent): void {
+    event.preventDefault();
+    this.stopDrop.emit({ event, index: this.index });
+  }
+
+  onStopDragEnd(): void {
+    this.stopDragEnd.emit();
   }
 
   onEditStop(): void {

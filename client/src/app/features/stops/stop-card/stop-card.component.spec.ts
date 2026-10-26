@@ -138,4 +138,44 @@ describe('StopCardComponent', () => {
 
     expect(component.editStop.emit).toHaveBeenCalledWith(component.stop);
   });
+
+  it('should render drag handle and collapse button', () => {
+    const compiled = fixture.nativeElement as HTMLElement;
+    const dragHandle = compiled.querySelector('.stop-drag-handle');
+    const toggleBtn = compiled.querySelector('.stop-toggle-btn');
+
+    expect(dragHandle).toBeTruthy();
+    expect(toggleBtn).toBeTruthy();
+  });
+
+  it('should toggle stop collapsed state and hide details when collapsed', () => {
+    expect(component.isCollapsed()).toBeFalse();
+    let compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('.stop-details-grid')).toBeTruthy();
+
+    // Toggle collapse
+    component.toggleCollapse();
+    fixture.detectChanges();
+
+    expect(component.isCollapsed()).toBeTrue();
+    compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('.stop-details-grid')).toBeNull();
+    // Header remains visible
+    expect(compiled.querySelector('.stop-header')).toBeTruthy();
+    expect(compiled.querySelector('.stop-name')?.textContent).toContain('Yosemite Valley');
+  });
+
+  it('should emit stopDragStart and stopDrop events', () => {
+    spyOn(component.stopDragStart, 'emit');
+    spyOn(component.stopDrop, 'emit');
+
+    const dragStartEvent = new DragEvent('dragstart');
+    component.index = 2;
+    component.onStopDragStart(dragStartEvent);
+    expect(component.stopDragStart.emit).toHaveBeenCalledWith({ event: dragStartEvent, index: 2 });
+
+    const dropEvent = new DragEvent('drop');
+    component.onStopDrop(dropEvent);
+    expect(component.stopDrop.emit).toHaveBeenCalledWith({ event: dropEvent, index: 2 });
+  });
 });

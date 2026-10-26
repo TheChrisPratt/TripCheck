@@ -174,9 +174,12 @@ import { TripAccessModalComponent } from '../trip-access-modal/trip-access-modal
             </div>
 
             <div class="stops-list">
-              @for (stop of trip()!.stops; track stop.id) {
+              @for (stop of trip()!.stops; track stop.id; let i = $index) {
                 <app-stop-card
                   [stop]="stop"
+                  [index]="i"
+                  [isDragging]="draggedStopIndex === i"
+                  [isDragOver]="dragOverStopIndex === i"
                   (cloneStop)="onOpenCloneModal($event)"
                   (editStop)="onOpenEditModal($event)"
                   (deleteStop)="onDeleteStop($event)"
@@ -185,6 +188,11 @@ import { TripAccessModalComponent } from '../trip-access-modal/trip-access-modal
                   (taskStatusChange)="onTaskStatusChange($event)"
                   (taskEdit)="onOpenEditTaskModal($event)"
                   (taskDelete)="onTaskDelete($event)"
+                  (stopDragStart)="onStopDragStart($event.event, i)"
+                  (stopDragOver)="onStopDragOver($event.event, i)"
+                  (stopDragLeave)="onStopDragLeave($event.event, i)"
+                  (stopDrop)="onStopDrop($event.event, i)"
+                  (stopDragEnd)="onStopDragEnd()"
                 />
               } @empty {
                 <div class="empty-stops-card">
@@ -545,6 +553,8 @@ export class TripDetailComponent implements OnInit {
 
   draggedState: { listType: string; index: number } | null = null;
   dragOverState: { listType: string; index: number } | null = null;
+  draggedStopIndex: number | null = null;
+  dragOverStopIndex: number | null = null;
 
   isPreTripCollapsed = signal<boolean>(true);
   isDepartureDayCollapsed = signal<boolean>(true);
@@ -577,6 +587,9 @@ export class TripDetailComponent implements OnInit {
 
     this.tripService.getTrip(tripId).subscribe({
       next: (data) => {
+        if (data && data.stops) {
+          data.stops = [...data.stops].sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0));
+        }
         this.trip.set(data);
         this.isLoading.set(false);
       },
@@ -684,6 +697,82 @@ export class TripDetailComponent implements OnInit {
   onTaskDragEnd(): void {
     this.draggedState = null;
     this.dragOverState = null;
+  }
+
+  onStopDragStart(event: DragEvent, index: number): void {
+    this.draggedStopIndex = index;
+    this.dragOverStopIndex = null;
+  }
+
+  onStopDragOver(event: DragEvent, index: number): void {
+    if (this.draggedStopIndex !== null) {
+      event.preventDefault();
+      if (event.dataTransfer) {
+        event.dataTransfer.dropEffect = 'move';
+      }
+      this.dragOverStopIndex = index;
+    }
+  }
+
+  onStopDragLeave(event: DragEvent, index: number): void {
+    if (this.dragOverStopIndex === index) {
+      this.dragOverStopIndex = null;
+    }
+  }
+
+  onStopDrop(event: DragEvent, targetIndex: number): void {
+    event.preventDefault();
+    if (this.draggedStopIndex === null || !this.trip()) {
+      this.draggedStopIndex = null;
+      this.dragOverStopIndex = null;
+      return;
+    }
+
+    const sourceIndex = this.draggedStopIndex;
+    this.draggedStopIndex = null;
+    this.dragOverStopIndex = null;
+
+    if (sourceIndex === targetIndex) {
+      return;
+    }
+
+    const stops = [...this.trip()!.stops];
+    if (sourceIndex < 0 || sourceIndex >= stops.length || targetIndex < 0 || targetIndex >= stops.length) {
+      return;
+    }
+
+    const [movedStop] = stops.splice(sourceIndex, 1);
+    stops.splice(targetIndex, 0, movedStop);
+    stops.forEach((s, i) => s.orderIndex = i);
+
+    if (this.trip()!.startingDate) {
+      const currentDate = new Date(this.trip()!.startingDate + 'T00:00:00');
+      for (const stop of stops) {
+        stop.stopDate = currentDate.toISOString().split('T')[0];
+        const nights = (stop.numberOfNights !== undefined && stop.numberOfNights >= 0) ? stop.numberOfNights : 1;
+        currentDate.setDate(currentDate.getDate() + nights);
+      }
+      const updatedTrip = { ...this.trip()!, stops, endingDate: currentDate.toISOString().split('T')[0] };
+      this.trip.set(updatedTrip);
+    } else {
+      const updatedTrip = { ...this.trip()!, stops };
+      this.trip.set(updatedTrip);
+    }
+
+    const stopIds = stops.map((s) => s.id);
+    this.tripService.reorderStops(stopIds).subscribe({
+      error: (err) => {
+        console.error('Failed to reorder stops', err);
+        if (this.trip()) {
+          this.loadTrip(this.trip()!.id);
+        }
+      }
+    });
+  }
+
+  onStopDragEnd(): void {
+    this.draggedStopIndex = null;
+    this.dragOverStopIndex = null;
   }
 
   onTaskDelete(task: Task): void {

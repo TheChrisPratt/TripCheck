@@ -16,12 +16,12 @@ import com.anodyzed.tripcheck.repository.StopServiceCatalogRepository;
 import com.anodyzed.tripcheck.repository.TripRepository;
 import com.anodyzed.tripcheck.util.exception.ResourceNotFoundException;
 
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional
@@ -216,6 +216,30 @@ public class StopService {
       stopRepository.delete(stop);
     }
   } //deleteStop
+
+  public void reorderStops (List<Long> stopIds,String userId) {
+    if(stopIds != null && !stopIds.isEmpty()) {
+      Stop firstStop = getStopEntity(stopIds.getFirst(),userId);
+      Trip trip = firstStop.getTrip();
+      if(trip != null) {
+        tripService.getTripEntity(trip.getId(),userId);
+
+        if(trip.getStops() != null) {
+          for(int i = 0;i < stopIds.size();i++) {
+            Long stopId = stopIds.get(i);
+            for(Stop s : trip.getStops()) {
+              if(s.getId() != null && s.getId().equals(stopId)) {
+                s.setOrderIndex(i);
+                break;
+              }
+            }
+          }
+          trip.recalculateDates();
+          tripRepository.save(trip);
+        }
+      }
+    }
+  } //reorderStops
 
   public Stop getStopEntity (Long stopId,String userId) {
     Stop stop = stopRepository.findById(stopId)

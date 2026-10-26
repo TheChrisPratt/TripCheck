@@ -108,6 +108,15 @@ describe('TripService', () => {
     req.flush(null);
   });
 
+  it('should reorder stops', () => {
+    service.reorderStops([101, 102, 103]).subscribe();
+
+    const req = httpTesting.expectOne('api/stops/reorder');
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.body).toEqual({ stopIds: [101, 102, 103] });
+    req.flush(null);
+  });
+
   it('should clone stop', () => {
     const cloneDto = {
       name: 'Yosemite Cloned',
