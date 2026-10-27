@@ -9,7 +9,7 @@
 - [x] Add the ability to edit the Task descriptions
 - [x] Allow access from multiple accounts
 - [x] Add Rearrange Stops Functionality
-- [ ] Add Clone Trip Functionality
-- [ ] See if we can calculate the timezone, elevation & weather 
+- [x] Add Clone Trip Functionality
 - [ ] Allow filtering Trips by Past/Future
+- [ ] See if we can calculate the timezone, elevation & weather 
 - [x] Figure out secure deployment

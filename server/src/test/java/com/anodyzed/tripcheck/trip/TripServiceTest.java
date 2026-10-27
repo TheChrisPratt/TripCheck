@@ -2,6 +2,7 @@ package com.anodyzed.tripcheck.trip;
 
 import com.anodyzed.tripcheck.dto.AddTripUserRequest;
 import com.anodyzed.tripcheck.dto.CloneStopRequest;
+import com.anodyzed.tripcheck.dto.CloneTripRequest;
 import com.anodyzed.tripcheck.dto.CreateStopRequest;
 import com.anodyzed.tripcheck.dto.CreateTaskRequest;
 import com.anodyzed.tripcheck.dto.CreateTripRequest;
@@ -824,5 +825,166 @@ class TripServiceTest {
       stopService.reorderStops(List.of(stop1.getId(),stop2.getId(),stop3.getId()),"bob")
     );
   } //reorderStops_updatesOrderIndicesAndRecalculatesDates
+
+  @Test
+  void cloneTrip_duplicatesChecklistsAndStopsWithIncompleteStatusAndNewDates () {
+    TripDetailResponse sourceTrip = tripService.createTrip(
+      CreateTripRequest.builder()
+        .name("Original Adventure")
+        .startingDate(LocalDate.of(2026,7,1))
+        .build(),
+      "alice"
+    );
+
+    TaskResponse preTask1 = taskService.addPreTripTask(
+      sourceTrip.getId(),
+      CreateTaskRequest.builder().description("Pack sleeping bags").build(),
+      "alice"
+    );
+    TaskResponse ignored = taskService.addPreTripTask(
+      sourceTrip.getId(),
+      CreateTaskRequest.builder().description("Buy groceries").build(),
+      "alice"
+    );
+    taskService.updateTaskStatus(preTask1.getId(),UpdateTaskStatusRequest.builder().status(TaskStatus.COMPLETED).build(),"alice");
+
+    TaskResponse depTask = taskService.addDepartureDayTask(
+      sourceTrip.getId(),
+      CreateTaskRequest.builder().description("Check tire pressure").build(),
+      "alice"
+    );
+    taskService.updateTaskStatus(depTask.getId(),UpdateTaskStatusRequest.builder().status(TaskStatus.COMPLETED).build(),"alice");
+
+    TaskResponse ignoredTask = taskService.addReturnDayTask(
+      sourceTrip.getId(),
+      CreateTaskRequest.builder().description("Unpack gear").build(),
+      "alice"
+    );
+
+    StopResponse stop1 = stopService.addStop(
+      sourceTrip.getId(),
+      CreateStopRequest.builder()
+        .name("Campground A")
+        .location("Mountain View")
+        .numberOfNights(2)
+        .webAddress("https://campa.com")
+        .telephoneNumber("555-1111")
+        .confirmationCode("CONF-A")
+        .siteNumber("Site 12")
+        .notes("Near the creek")
+        .hookups(Set.of("Electric","Water"))
+        .checkinTime(LocalTime.of(14,0))
+        .checkoutTime(LocalTime.of(11,0))
+        .amenities(Set.of("Trails","River Access"))
+        .services(Set.of("Firewood"))
+        .codes("GATE-1234")
+        .build(),
+      "alice"
+    );
+
+    TaskResponse arrTask = taskService.addArrivalTask(
+      stop1.getId(),
+      CreateTaskRequest.builder().description("Level the rig").build(),
+      "alice"
+    );
+    taskService.updateTaskStatus(arrTask.getId(),UpdateTaskStatusRequest.builder().status(TaskStatus.COMPLETED).build(),"alice");
+
+    TaskResponse ignoredDepartureTask = taskService.addDepartureTask(
+      stop1.getId(),
+      CreateTaskRequest.builder().description("Disconnect hoses").build(),
+      "alice"
+    );
+
+    StopResponse stop2 = stopService.addStop(
+      sourceTrip.getId(),
+      CreateStopRequest.builder()
+        .name("Campground B")
+        .location("Lakeside")
+        .numberOfNights(3)
+        .build(),
+      "alice"
+    );
+
+      // Clone trip to start on June 1, 2027
+    TripDetailResponse clonedTrip = tripService.cloneTrip(
+      sourceTrip.getId(),
+      CloneTripRequest.builder()
+        .name("Cloned Adventure 2027")
+        .startingDate(LocalDate.of(2027,6,1))
+        .build(),
+      "alice"
+    );
+
+    assertNotNull(clonedTrip.getId());
+    Assertions.assertNotEquals(sourceTrip.getId(),clonedTrip.getId());
+    assertEquals("Cloned Adventure 2027",clonedTrip.getName());
+    assertEquals(LocalDate.of(2027,6,1),clonedTrip.getStartingDate());
+    assertEquals(LocalDate.of(2027,6,6),clonedTrip.getEndingDate());
+    assertEquals(1,clonedTrip.getUsers().size());
+    assertEquals("alice",clonedTrip.getUsers().getFirst().getUsername());
+
+      // Check Pre-Trip tasks
+    assertEquals(2,clonedTrip.getPreTripTasks().size());
+    assertEquals("Pack sleeping bags",clonedTrip.getPreTripTasks().get(0).getDescription());
+    assertEquals(TaskStatus.INCOMPLETE,clonedTrip.getPreTripTasks().get(0).getStatus());
+    assertEquals("Buy groceries",clonedTrip.getPreTripTasks().get(1).getDescription());
+    assertEquals(TaskStatus.INCOMPLETE,clonedTrip.getPreTripTasks().get(1).getStatus());
+
+      // Check Departure Day tasks
+    assertEquals(1,clonedTrip.getDepartureDayTasks().size());
+    assertEquals("Check tire pressure",clonedTrip.getDepartureDayTasks().getFirst().getDescription());
+    assertEquals(TaskStatus.INCOMPLETE,clonedTrip.getDepartureDayTasks().getFirst().getStatus());
+
+      // Check Return Day tasks
+    assertEquals(1,clonedTrip.getReturnDayTasks().size());
+    assertEquals("Unpack gear",clonedTrip.getReturnDayTasks().getFirst().getDescription());
+    assertEquals(TaskStatus.INCOMPLETE,clonedTrip.getReturnDayTasks().getFirst().getStatus());
+
+      // Check Stops
+    assertEquals(2,clonedTrip.getStops().size());
+
+    StopResponse clonedStop1 = clonedTrip.getStops().getFirst();
+    Assertions.assertNotEquals(stop1.getId(),clonedStop1.getId());
+    assertEquals("Campground A",clonedStop1.getName());
+    assertEquals("Mountain View",clonedStop1.getLocation());
+    assertEquals(2,clonedStop1.getNumberOfNights());
+    assertEquals(LocalDate.of(2027,6,1),clonedStop1.getStopDate());
+    assertEquals("https://campa.com",clonedStop1.getWebAddress());
+    assertEquals("555-1111",clonedStop1.getTelephoneNumber());
+    assertEquals("CONF-A",clonedStop1.getConfirmationCode());
+    assertEquals("Site 12",clonedStop1.getSiteNumber());
+    assertEquals("Near the creek",clonedStop1.getNotes());
+    assertEquals(Set.of("Electric","Water"),clonedStop1.getHookups());
+    assertEquals(LocalTime.of(14,0),clonedStop1.getCheckinTime());
+    assertEquals(LocalTime.of(11,0),clonedStop1.getCheckoutTime());
+    assertEquals(Set.of("Trails","River Access"),clonedStop1.getAmenities());
+    assertEquals(Set.of("Firewood"),clonedStop1.getServices());
+    assertEquals("GATE-1234",clonedStop1.getCodes());
+
+      // Check Stop 1 Tasks (must be INCOMPLETE)
+    assertEquals(1,clonedStop1.getArrivalTasks().size());
+    assertEquals("Level the rig",clonedStop1.getArrivalTasks().getFirst().getDescription());
+    assertEquals(TaskStatus.INCOMPLETE,clonedStop1.getArrivalTasks().getFirst().getStatus());
+
+    assertEquals(1,clonedStop1.getDepartureTasks().size());
+    assertEquals("Disconnect hoses",clonedStop1.getDepartureTasks().getFirst().getDescription());
+    assertEquals(TaskStatus.INCOMPLETE,clonedStop1.getDepartureTasks().getFirst().getStatus());
+
+    StopResponse clonedStop2 = clonedTrip.getStops().get(1);
+    Assertions.assertNotEquals(stop2.getId(),clonedStop2.getId());
+    assertEquals("Campground B",clonedStop2.getName());
+    assertEquals("Lakeside",clonedStop2.getLocation());
+    assertEquals(3,clonedStop2.getNumberOfNights());
+    assertEquals(LocalDate.of(2027,6,3),clonedStop2.getStopDate());
+
+      // User isolation check: Unauthorized user cannot clone
+    assertThrows(ResourceNotFoundException.class,() ->
+      tripService.cloneTrip(
+        sourceTrip.getId(),
+        CloneTripRequest.builder().name("Unauthorized Clone").startingDate(LocalDate.of(2027,1,1)).build(),
+        "bob"
+      )
+    );
+  } //cloneTrip_duplicatesChecklistsAndStopsWithIncompleteStatusAndNewDates
 
 } //*TripServiceTest

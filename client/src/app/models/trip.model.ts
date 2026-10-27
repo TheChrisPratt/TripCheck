@@ -33,3 +33,8 @@ export interface UpdateTripDto {
   name: string;
   startingDate: string;
 }
+
+export interface CloneTripDto {
+  name: string;
+  startingDate: string;
+}

@@ -1,14 +1,15 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { TripService } from '../../../services/trip.service';
 import { AuthService } from '../../../core/auth/auth.service';
-import { TripSummary } from '../../../models/trip.model';
+import { TripSummary, CloneTripDto } from '../../../models/trip.model';
+import { TripCloneModalComponent } from '../trip-clone-modal/trip-clone-modal.component';
 
 @Component({
   selector: 'app-trip-list',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, TripCloneModalComponent],
   template: `
     <div class="trips-container">
       <div class="page-header">
@@ -44,14 +45,26 @@ import { TripSummary } from '../../../models/trip.model';
                 <h3 class="trip-title">
                   <a [routerLink]="['/trips', trip.id]">{{ trip.name }}</a>
                 </h3>
-                <button
-                  type="button"
-                  class="delete-btn"
-                  (click)="onDeleteTrip(trip)"
-                  title="Delete trip"
-                >
-                  &times;
-                </button>
+                <div class="card-top-actions">
+                  <button
+                    type="button"
+                    class="clone-btn"
+                    (click)="onOpenCloneModal(trip)"
+                    title="Clone trip"
+                    aria-label="Clone trip"
+                  >
+                    📋
+                  </button>
+                  <button
+                    type="button"
+                    class="delete-btn"
+                    (click)="onDeleteTrip(trip)"
+                    title="Delete trip"
+                    aria-label="Delete trip"
+                  >
+                    &times;
+                  </button>
+                </div>
               </div>
 
               <div class="trip-dates">
@@ -83,6 +96,15 @@ import { TripSummary } from '../../../models/trip.model';
             </div>
           }
         </div>
+      }
+
+      @if (tripToClone) {
+        <app-trip-clone-modal
+          [initialName]="tripToClone.name"
+          [initialStartingDate]="tripToClone.startingDate"
+          (tripCloned)="onTripCloned($event)"
+          (modalClosed)="tripToClone = null"
+        />
       }
     </div>
   `,
@@ -177,6 +199,29 @@ import { TripSummary } from '../../../models/trip.model';
       align-items: flex-start;
       margin-bottom: 12px;
     }
+    .card-top-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .clone-btn {
+      background: none;
+      border: none;
+      color: #64748b;
+      font-size: 1.1rem;
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: 4px;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    .clone-btn:hover {
+      color: #2563eb;
+      background: #eff6ff;
+    }
     .trip-title {
       margin: 0;
       font-size: 1.25rem;
@@ -262,11 +307,13 @@ import { TripSummary } from '../../../models/trip.model';
 })
 export class TripListComponent implements OnInit {
   private tripService = inject(TripService);
+  private router = inject(Router);
   authService = inject(AuthService);
 
   trips = signal<TripSummary[]>([]);
   isLoading = signal<boolean>(true);
   errorMessage = signal<string | null>(null);
+  tripToClone: TripSummary | null = null;
 
   ngOnInit(): void {
     this.loadTrips();
@@ -304,5 +351,23 @@ export class TripListComponent implements OnInit {
         }
       });
     }
+  }
+
+  onOpenCloneModal(trip: TripSummary): void {
+    this.tripToClone = trip;
+  }
+
+  onTripCloned(dto: CloneTripDto): void {
+    if (!this.tripToClone) return;
+    const tripId = this.tripToClone.id;
+    this.tripService.cloneTrip(tripId, dto).subscribe({
+      next: (cloned) => {
+        this.tripToClone = null;
+        this.router.navigate(['/trips', cloned.id]);
+      },
+      error: (err) => {
+        alert(err?.error?.message || 'Failed to clone trip.');
+      }
+    });
   }
 }

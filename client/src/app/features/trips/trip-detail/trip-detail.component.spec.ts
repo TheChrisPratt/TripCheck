@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { ActivatedRoute, provideRouter } from '@angular/router';
+import { ActivatedRoute, Router, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { TripDetailComponent } from './trip-detail.component';
 import { TripService } from '../../../services/trip.service';
@@ -47,6 +47,7 @@ describe('TripDetailComponent', () => {
       'addTripUser',
       'removeTripUser',
       'updateTrip',
+      'cloneTrip',
       'updateTask',
       'updateTaskStatus',
       'reorderTasks',
@@ -350,5 +351,33 @@ describe('TripDetailComponent', () => {
     expect(component.trip()?.endingDate).toBe('2026-08-07');
 
     expect(tripServiceSpy.reorderStops).toHaveBeenCalledWith([203, 201, 202]);
+  });
+
+  it('should open clone trip modal and handle cloning trip', () => {
+    const router = TestBed.inject(Router);
+    spyOn(router, 'navigate');
+
+    component.showCloneTripModal = true;
+    fixture.detectChanges();
+
+    const clonedTripResponse = {
+      ...mockTripDetail,
+      id: 99,
+      name: 'Yellowstone Trip (2027)',
+      startingDate: '2027-08-01'
+    };
+    tripServiceSpy.cloneTrip.and.returnValue(of(clonedTripResponse));
+
+    component.onCloneTripSubmitted({
+      name: 'Yellowstone Trip (2027)',
+      startingDate: '2027-08-01'
+    });
+
+    expect(tripServiceSpy.cloneTrip).toHaveBeenCalledWith(1, {
+      name: 'Yellowstone Trip (2027)',
+      startingDate: '2027-08-01'
+    });
+    expect(component.showCloneTripModal).toBeFalse();
+    expect(router.navigate).toHaveBeenCalledWith(['/trips', 99]);
   });
 });

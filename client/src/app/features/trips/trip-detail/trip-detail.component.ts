@@ -1,8 +1,8 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TripService } from '../../../services/trip.service';
-import { TripDetail, UpdateTripDto } from '../../../models/trip.model';
+import { TripDetail, UpdateTripDto, CloneTripDto } from '../../../models/trip.model';
 import { Task, TaskStatus, UpdateTaskDto } from '../../../models/task.model';
 import { CreateStopDto, CloneStopDto, UpdateStopDto, Stop } from '../../../models/stop.model';
 import { TaskItemComponent } from '../../tasks/task-item/task-item.component';
@@ -13,6 +13,7 @@ import { StopModalComponent } from '../../stops/stop-modal/stop-modal.component'
 import { StopCloneModalComponent } from '../../stops/stop-clone-modal/stop-clone-modal.component';
 import { StopEditModalComponent } from '../../stops/stop-edit-modal/stop-edit-modal.component';
 import { TripEditModalComponent } from '../trip-edit-modal/trip-edit-modal.component';
+import { TripCloneModalComponent } from '../trip-clone-modal/trip-clone-modal.component';
 import { TripAccessModalComponent } from '../trip-access-modal/trip-access-modal.component';
 
 @Component({
@@ -29,6 +30,7 @@ import { TripAccessModalComponent } from '../trip-access-modal/trip-access-modal
     StopCloneModalComponent,
     StopEditModalComponent,
     TripEditModalComponent,
+    TripCloneModalComponent,
     TripAccessModalComponent
   ],
   template: `
@@ -68,6 +70,9 @@ import { TripAccessModalComponent } from '../trip-access-modal/trip-access-modal
               <div class="header-actions">
                 <button type="button" class="btn btn-outline" (click)="onOpenAccessModal()">
                   👥 Share
+                </button>
+                <button type="button" class="btn btn-outline btn-clone-trip" (click)="showCloneTripModal = true" title="Clone trip" aria-label="Clone trip">
+                  📋 Clone Trip
                 </button>
                 <button type="button" class="btn btn-outline" (click)="showEditTripModal = true">
                   ✏️ Edit Trip
@@ -313,6 +318,15 @@ import { TripAccessModalComponent } from '../trip-access-modal/trip-access-modal
         />
       }
 
+      @if (showCloneTripModal && trip()) {
+        <app-trip-clone-modal
+          [initialName]="trip()!.name"
+          [initialStartingDate]="trip()!.startingDate"
+          (tripCloned)="onCloneTripSubmitted($event)"
+          (modalClosed)="showCloneTripModal = false"
+        />
+      }
+
       @if (showAccessModal && trip()) {
         <app-trip-access-modal
           [collaborators]="trip()!.users || []"
@@ -535,6 +549,7 @@ import { TripAccessModalComponent } from '../trip-access-modal/trip-access-modal
 })
 export class TripDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
   private tripService = inject(TripService);
 
   trip = signal<TripDetail | null>(null);
@@ -546,6 +561,7 @@ export class TripDetailComponent implements OnInit {
   showReturnDayModal = false;
   showAddStopModal = false;
   showEditTripModal = false;
+  showCloneTripModal = false;
   showAccessModal = false;
   stopToClone: Stop | null = null;
   stopToEdit: Stop | null = null;
@@ -928,6 +944,19 @@ export class TripDetailComponent implements OnInit {
       },
       error: (err) => {
         alert(err?.error?.message || 'Failed to update trip.');
+      }
+    });
+  }
+
+  onCloneTripSubmitted(dto: CloneTripDto): void {
+    if (!this.trip()) return;
+    this.tripService.cloneTrip(this.trip()!.id, dto).subscribe({
+      next: (clonedTrip) => {
+        this.showCloneTripModal = false;
+        this.router.navigate(['/trips', clonedTrip.id]);
+      },
+      error: (err) => {
+        alert(err?.error?.message || 'Failed to clone trip.');
       }
     });
   }

@@ -1,16 +1,22 @@
 package com.anodyzed.tripcheck.services;
 
 import com.anodyzed.tripcheck.dto.AddTripUserRequest;
+import com.anodyzed.tripcheck.dto.CloneTripRequest;
 import com.anodyzed.tripcheck.dto.CreateTripRequest;
 import com.anodyzed.tripcheck.dto.TripDetailResponse;
 import com.anodyzed.tripcheck.dto.TripSummaryResponse;
 import com.anodyzed.tripcheck.dto.UpdateTripRequest;
+import com.anodyzed.tripcheck.model.Stop;
+import com.anodyzed.tripcheck.model.Task;
+import com.anodyzed.tripcheck.model.TaskStatus;
 import com.anodyzed.tripcheck.model.Trip;
 import com.anodyzed.tripcheck.model.User;
 import com.anodyzed.tripcheck.repository.TripRepository;
 import com.anodyzed.tripcheck.util.exception.BadRequestException;
 import com.anodyzed.tripcheck.util.exception.ResourceNotFoundException;
 
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -54,6 +60,82 @@ public class TripService {
     Trip saved = tripRepository.save(trip);
     return TripDetailResponse.fromEntity(saved);
   } //updateTrip
+
+  public TripDetailResponse cloneTrip (Long sourceTripId,CloneTripRequest request,String userId) {
+    Trip sourceTrip = getTripEntity(sourceTripId,userId);
+
+    Trip clonedTrip = Trip.builder()
+      .name(request.getName())
+      .startingDate(request.getStartingDate())
+      .endingDate(request.getStartingDate())
+      .build();
+
+    if(userId != null && !userId.isBlank()) {
+      User user = userService.getOrCreateUser(userId,null);
+      if(user != null) {
+        clonedTrip.addUser(user);
+      }
+    }
+
+    if(sourceTrip.getTasks() != null) {
+      for(Task sourceTask : sourceTrip.getTasks()) {
+        Task clonedTask = Task.builder()
+          .description(sourceTask.getDescription())
+          .category(sourceTask.getCategory())
+          .status(TaskStatus.INCOMPLETE)
+          .orderIndex(sourceTask.getOrderIndex())
+          .trip(clonedTrip)
+          .build();
+        clonedTrip.getTasks().add(clonedTask);
+      }
+    }
+
+    if(sourceTrip.getStops() != null) {
+      List<Stop> sortedStops = sourceTrip.getStops().stream()
+        .sorted(Comparator.comparing(s -> s.getOrderIndex() != null ? s.getOrderIndex() : 0))
+        .toList();
+
+      for(Stop sourceStop : sortedStops) {
+        Stop clonedStop = Stop.builder()
+          .name(sourceStop.getName())
+          .location(sourceStop.getLocation())
+          .numberOfNights(sourceStop.getNumberOfNights() != null ? sourceStop.getNumberOfNights() : 1)
+          .webAddress(sourceStop.getWebAddress())
+          .telephoneNumber(sourceStop.getTelephoneNumber())
+          .confirmationCode(sourceStop.getConfirmationCode())
+          .siteNumber(sourceStop.getSiteNumber())
+          .notes(sourceStop.getNotes())
+          .orderIndex(sourceStop.getOrderIndex())
+          .hookups(sourceStop.getHookups() != null ? new HashSet<>(sourceStop.getHookups()) : new HashSet<>())
+          .checkinTime(sourceStop.getCheckinTime())
+          .checkoutTime(sourceStop.getCheckoutTime())
+          .amenities(sourceStop.getAmenities() != null ? new HashSet<>(sourceStop.getAmenities()) : new HashSet<>())
+          .services(sourceStop.getServices() != null ? new HashSet<>(sourceStop.getServices()) : new HashSet<>())
+          .codes(sourceStop.getCodes())
+          .trip(clonedTrip)
+          .build();
+
+        if(sourceStop.getTasks() != null) {
+          for(Task sourceStopTask : sourceStop.getTasks()) {
+            Task clonedStopTask = Task.builder()
+              .description(sourceStopTask.getDescription())
+              .category(sourceStopTask.getCategory())
+              .status(TaskStatus.INCOMPLETE)
+              .orderIndex(sourceStopTask.getOrderIndex())
+              .stop(clonedStop)
+              .build();
+            clonedStop.getTasks().add(clonedStopTask);
+          }
+        }
+
+        clonedTrip.getStops().add(clonedStop);
+      }
+    }
+
+    clonedTrip.recalculateDates();
+    Trip saved = tripRepository.save(clonedTrip);
+    return TripDetailResponse.fromEntity(saved);
+  } //cloneTrip
 
   @Transactional(readOnly=true)
   public List<TripSummaryResponse> getUserTrips (String userId) {

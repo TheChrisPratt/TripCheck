@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { provideRouter } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { TripListComponent } from './trip-list.component';
 import { TripService } from '../../../services/trip.service';
@@ -13,7 +13,7 @@ describe('TripListComponent', () => {
   let tripServiceSpy: jasmine.SpyObj<TripService>;
 
   beforeEach(async () => {
-    tripServiceSpy = jasmine.createSpyObj('TripService', ['getTrips', 'deleteTrip']);
+    tripServiceSpy = jasmine.createSpyObj('TripService', ['getTrips', 'deleteTrip', 'cloneTrip']);
     tripServiceSpy.getTrips.and.returnValue(
       of([
         {
@@ -61,5 +61,38 @@ describe('TripListComponent', () => {
   it('should compute progress percentage correctly', () => {
     const trip = component.trips()[0];
     expect(component.getProgressPercentage(trip)).toBe(50);
+  });
+
+  it('should open clone modal and clone trip when submitted', () => {
+    const router = TestBed.inject(Router);
+    spyOn(router, 'navigate');
+
+    const trip = component.trips()[0];
+    component.onOpenCloneModal(trip);
+    expect(component.tripToClone).toEqual(trip);
+
+    const mockClonedResponse = {
+      id: 2,
+      name: 'Grand Canyon Tour 2027',
+      startingDate: '2027-09-01',
+      endingDate: '2027-09-06',
+      stops: [],
+      preTripTasks: [],
+      departureDayTasks: [],
+      returnDayTasks: []
+    };
+    tripServiceSpy.cloneTrip.and.returnValue(of(mockClonedResponse));
+
+    component.onTripCloned({
+      name: 'Grand Canyon Tour 2027',
+      startingDate: '2027-09-01'
+    });
+
+    expect(tripServiceSpy.cloneTrip).toHaveBeenCalledWith(1, {
+      name: 'Grand Canyon Tour 2027',
+      startingDate: '2027-09-01'
+    });
+    expect(component.tripToClone).toBeNull();
+    expect(router.navigate).toHaveBeenCalledWith(['/trips', 2]);
   });
 });

@@ -3,6 +3,7 @@ package com.anodyzed.tripcheck.resources;
 import jakarta.validation.Valid;
 
 import com.anodyzed.tripcheck.dto.AddTripUserRequest;
+import com.anodyzed.tripcheck.dto.CloneTripRequest;
 import com.anodyzed.tripcheck.dto.CreateStopRequest;
 import com.anodyzed.tripcheck.dto.CreateTaskRequest;
 import com.anodyzed.tripcheck.dto.CreateTripRequest;
@@ -54,6 +55,15 @@ public class TripResource {
     TripDetailResponse response = tripService.createTrip(request,getUserId(authentication));
     return ResponseEntity.status(HttpStatus.CREATED).body(response);
   } //createTrip
+
+  @PostMapping("/{id}/clone")
+  public ResponseEntity<TripDetailResponse> cloneTrip (
+    @PathVariable Long id,
+    @Valid @RequestBody CloneTripRequest request,
+    Authentication authentication) {
+    TripDetailResponse response = tripService.cloneTrip(id,request,getUserId(authentication));
+    return ResponseEntity.status(HttpStatus.CREATED).body(response);
+  } //cloneTrip
 
   @GetMapping
   public ResponseEntity<List<TripSummaryResponse>> listTrips (Authentication authentication) {

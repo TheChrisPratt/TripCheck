@@ -501,4 +501,56 @@ class TripResourceTest {
       .andExpect(jsonPath("$.endingDate").value("2026-07-06"));
   } //reorderStops_viaRestEndpoint
 
+  @Test
+  void cloneTrip_viaRestEndpoint () throws Exception {
+    String token = jwtService.generateToken("clonetester");
+    Cookie cookie = new Cookie("TRIPCHECK_TOKEN",token);
+
+    MvcResult tripResult = mockMvc.perform(post("/api/trips")
+        .cookie(cookie)
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"name\":\"Original Tour\",\"startingDate\":\"2026-05-01\"}"))
+      .andExpect(status().isCreated())
+      .andReturn();
+    long sourceTripId = ((Number)objectMapper.readValue(tripResult.getResponse().getContentAsString(),Map.class).get("id")).longValue();
+
+      // Add pre-trip task
+    mockMvc.perform(post("/api/trips/" + sourceTripId + "/tasks/pre-trip")
+        .cookie(cookie)
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"description\":\"Get passport\"}"))
+      .andExpect(status().isCreated());
+
+      // Add a stop with tasks
+    MvcResult stopResult = mockMvc.perform(post("/api/trips/" + sourceTripId + "/stops")
+        .cookie(cookie)
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"name\":\"Stop 1\",\"numberOfNights\":3}"))
+      .andExpect(status().isCreated())
+      .andReturn();
+    long stopId = ((Number)objectMapper.readValue(stopResult.getResponse().getContentAsString(),Map.class).get("id")).longValue();
+
+    mockMvc.perform(post("/api/stops/" + stopId + "/tasks/arrival")
+        .cookie(cookie)
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"description\":\"Check in at desk\"}"))
+      .andExpect(status().isCreated());
+
+      // Clone trip to start on 2027-05-01
+    mockMvc.perform(post("/api/trips/" + sourceTripId + "/clone")
+        .cookie(cookie)
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"name\":\"Cloned Tour 2027\",\"startingDate\":\"2027-05-01\"}"))
+      .andExpect(status().isCreated())
+      .andExpect(jsonPath("$.name").value("Cloned Tour 2027"))
+      .andExpect(jsonPath("$.startingDate").value("2027-05-01"))
+      .andExpect(jsonPath("$.endingDate").value("2027-05-04"))
+      .andExpect(jsonPath("$.preTripTasks[0].description").value("Get passport"))
+      .andExpect(jsonPath("$.preTripTasks[0].status").value("INCOMPLETE"))
+      .andExpect(jsonPath("$.stops[0].name").value("Stop 1"))
+      .andExpect(jsonPath("$.stops[0].stopDate").value("2027-05-01"))
+      .andExpect(jsonPath("$.stops[0].arrivalTasks[0].description").value("Check in at desk"))
+      .andExpect(jsonPath("$.stops[0].arrivalTasks[0].status").value("INCOMPLETE"));
+  } //cloneTrip_viaRestEndpoint
+
 } //*TripResourceTest

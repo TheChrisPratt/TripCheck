@@ -74,6 +74,31 @@ describe('TripService', () => {
     req.flush(mockResponse);
   });
 
+  it('should clone trip', () => {
+    const cloneDto = { name: 'Cloned Trip', startingDate: '2027-01-01' };
+    const mockResponse = {
+      id: 3,
+      name: 'Cloned Trip',
+      startingDate: '2027-01-01',
+      endingDate: '2027-01-05',
+      preTripTasks: [],
+      departureDayTasks: [],
+      returnDayTasks: [],
+      stops: []
+    };
+
+    service.cloneTrip(1, cloneDto).subscribe((res) => {
+      expect(res.id).toBe(3);
+      expect(res.name).toBe('Cloned Trip');
+      expect(res.startingDate).toBe('2027-01-01');
+    });
+
+    const req = httpTesting.expectOne('api/trips/1/clone');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual(cloneDto);
+    req.flush(mockResponse);
+  });
+
   it('should update trip', () => {
     const updateDto = { name: 'Updated Coast', startingDate: '2026-08-05' };
     const mockResponse = {
