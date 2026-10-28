@@ -607,6 +607,8 @@ export class StopCardComponent implements OnInit {
 
   ngOnInit(): void {
     this.isCollapsed.set(!this.isCurrentStop());
+    this.isArrivalCollapsed.set(!this.isArrivalDay());
+    this.isDepartureCollapsed.set(!this.isDepartureDay());
   }
 
   isCurrentStop(): boolean {
@@ -618,16 +620,54 @@ export class StopCardComponent implements OnInit {
         const startDay = parseInt(parts[2],10);
         if(!isNaN(startYear) && !isNaN(startMonth) && !isNaN(startDay)) {
           const startDate = new Date(startYear,startMonth,startDay);
-          console.debug('startDate',startDate);
           const nights = Math.max(0,this.stop.numberOfNights ?? 1);
-          console.debug('nights',nights);
           const endDate = new Date(startYear,startMonth,startDay + nights);
-          console.debug('endDate',endDate);
 
           const now = new Date();
           const today = new Date(now.getFullYear(),now.getMonth(),now.getDate());
 
           return today.getTime() >= startDate.getTime() && today.getTime() <= endDate.getTime();
+        }
+      }
+    }
+    return false;
+  }
+
+  isArrivalDay(): boolean {
+    if(this.stop?.stopDate) {
+      const parts = this.stop.stopDate.split('-');
+      if(parts.length >= 3) {
+        const startYear = parseInt(parts[0],10);
+        const startMonth = parseInt(parts[1],10) - 1;
+        const startDay = parseInt(parts[2],10);
+        if(!isNaN(startYear) && !isNaN(startMonth) && !isNaN(startDay)) {
+          const startDate = new Date(startYear,startMonth,startDay);
+
+          const now = new Date();
+          const today = new Date(now.getFullYear(),now.getMonth(),now.getDate());
+
+          return today.getTime() === startDate.getTime();
+        }
+      }
+    }
+    return false;
+  }
+
+  isDepartureDay(): boolean {
+    if(this.stop?.stopDate) {
+      const parts = this.stop.stopDate.split('-');
+      if(parts.length >= 3) {
+        const startYear = parseInt(parts[0],10);
+        const startMonth = parseInt(parts[1],10) - 1;
+        const startDay = parseInt(parts[2],10);
+        if(!isNaN(startYear) && !isNaN(startMonth) && !isNaN(startDay)) {
+          const nights = Math.max(0,this.stop.numberOfNights ?? 1);
+          const endDate = new Date(startYear,startMonth,startDay + nights);
+
+          const now = new Date();
+          const today = new Date(now.getFullYear(),now.getMonth(),now.getDate());
+
+          return today.getTime() === endDate.getTime();
         }
       }
     }
