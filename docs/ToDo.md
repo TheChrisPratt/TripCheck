@@ -10,7 +10,7 @@
 - [x] Allow access from multiple accounts
 - [x] Add Rearrange Stops Functionality
 - [x] Add Clone Trip Functionality
-- [ ] Default stop accordion to open if the current date is after its start date and before its end date
+- [x] Default stop accordion to open if the current date is after its start date and before its end date
 - [ ] Allow filtering Trips by Past/Future
 - [ ] See if we can calculate the timezone, elevation and weather 
 - [x] Figure out secure deployment

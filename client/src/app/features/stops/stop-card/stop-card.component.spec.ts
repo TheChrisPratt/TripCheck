@@ -51,6 +51,8 @@ describe('StopCardComponent', () => {
   });
 
   it('should render extended stop fields: times, hookups, codes, amenities, and services', () => {
+    component.isCollapsed.set(false);
+    fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
 
     expect(compiled.textContent).toContain('Check-in:');
@@ -83,9 +85,110 @@ describe('StopCardComponent', () => {
     expect(component.completedArrivalTasksCount).toBe(1);
   });
 
-  it('should default all accordions to closed', () => {
+  it('should default all accordions to closed when stop is not during current date', () => {
+    expect(component.isCollapsed()).toBeTrue();
     expect(component.isArrivalCollapsed()).toBeTrue();
     expect(component.isDepartureCollapsed()).toBeTrue();
+  });
+
+  it('should default stop accordion to open if current date is after start date and before end date', () => {
+    const now = new Date();
+    const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 2);
+    const stopDateStr = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}`;
+
+    const activeFixture = TestBed.createComponent(StopCardComponent);
+    const activeComponent = activeFixture.componentInstance;
+    activeComponent.stop = {
+      id: 2,
+      name: 'Active Stop',
+      stopDate: stopDateStr,
+      numberOfNights: 4,
+      orderIndex: 1,
+      arrivalTasks: [],
+      departureTasks: []
+    };
+    activeFixture.detectChanges();
+
+    expect(activeComponent.isCollapsed()).toBeFalse();
+  });
+
+  it('should default stop accordion to closed if current date is before start date', () => {
+    const now = new Date();
+    const futureDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 5);
+    const stopDateStr = `${futureDate.getFullYear()}-${String(futureDate.getMonth() + 1).padStart(2, '0')}-${String(futureDate.getDate()).padStart(2, '0')}`;
+
+    const futureFixture = TestBed.createComponent(StopCardComponent);
+    const futureComponent = futureFixture.componentInstance;
+    futureComponent.stop = {
+      id: 3,
+      name: 'Future Stop',
+      stopDate: stopDateStr,
+      numberOfNights: 2,
+      orderIndex: 2,
+      arrivalTasks: [],
+      departureTasks: []
+    };
+    futureFixture.detectChanges();
+
+    expect(futureComponent.isCollapsed()).toBeTrue();
+  });
+
+  it('should default stop accordion to closed if current date is after end date', () => {
+    const now = new Date();
+    const pastDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 10);
+    const stopDateStr = `${pastDate.getFullYear()}-${String(pastDate.getMonth() + 1).padStart(2, '0')}-${String(pastDate.getDate()).padStart(2, '0')}`;
+
+    const pastFixture = TestBed.createComponent(StopCardComponent);
+    const pastComponent = pastFixture.componentInstance;
+    pastComponent.stop = {
+      id: 4,
+      name: 'Past Stop',
+      stopDate: stopDateStr,
+      numberOfNights: 2,
+      orderIndex: 0,
+      arrivalTasks: [],
+      departureTasks: []
+    };
+    pastFixture.detectChanges();
+
+    expect(pastComponent.isCollapsed()).toBeTrue();
+  });
+
+  it('should default stop accordion to open if current date is exactly on start date or end date', () => {
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+      // Exactly on start date (today is start date)
+    const startFixture = TestBed.createComponent(StopCardComponent);
+    const startComponent = startFixture.componentInstance;
+    startComponent.stop = {
+      id: 5,
+      name: 'Start Today Stop',
+      stopDate: todayStr,
+      numberOfNights: 3,
+      orderIndex: 0,
+      arrivalTasks: [],
+      departureTasks: []
+    };
+    startFixture.detectChanges();
+    expect(startComponent.isCollapsed()).toBeFalse();
+
+      // Exactly on end date (start date was 2 days ago, numberOfNights is 2 -> end date is today)
+    const pastDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 2);
+    const pastStr = `${pastDate.getFullYear()}-${String(pastDate.getMonth() + 1).padStart(2, '0')}-${String(pastDate.getDate()).padStart(2, '0')}`;
+    const endFixture = TestBed.createComponent(StopCardComponent);
+    const endComponent = endFixture.componentInstance;
+    endComponent.stop = {
+      id: 6,
+      name: 'End Today Stop',
+      stopDate: pastStr,
+      numberOfNights: 2,
+      orderIndex: 0,
+      arrivalTasks: [],
+      departureTasks: []
+    };
+    endFixture.detectChanges();
+    expect(endComponent.isCollapsed()).toBeFalse();
   });
 
   it('should toggle collapse state for arrival and departure tasks', () => {
@@ -149,20 +252,26 @@ describe('StopCardComponent', () => {
   });
 
   it('should toggle stop collapsed state and hide details when collapsed', () => {
-    expect(component.isCollapsed()).toBeFalse();
+    expect(component.isCollapsed()).toBeTrue();
     let compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('.stop-details-grid')).toBeTruthy();
+    expect(compiled.querySelector('.stop-details-grid')).toBeNull();
 
-    // Toggle collapse
+      // Toggle expand
     component.toggleCollapse();
     fixture.detectChanges();
 
-    expect(component.isCollapsed()).toBeTrue();
+    expect(component.isCollapsed()).toBeFalse();
     compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('.stop-details-grid')).toBeNull();
-    // Header remains visible
+    expect(compiled.querySelector('.stop-details-grid')).toBeTruthy();
+      // Header remains visible
     expect(compiled.querySelector('.stop-header')).toBeTruthy();
     expect(compiled.querySelector('.stop-name')?.textContent).toContain('Yosemite Valley');
+
+      // Toggle collapse again
+    component.toggleCollapse();
+    fixture.detectChanges();
+    expect(component.isCollapsed()).toBeTrue();
+    expect(fixture.nativeElement.querySelector('.stop-details-grid')).toBeNull();
   });
 
   it('should emit stopDragStart and stopDrop events', () => {

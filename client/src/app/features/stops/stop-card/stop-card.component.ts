@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, inject, signal } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Stop } from '../../../models/stop.model';
 import { Task, TaskStatus } from '../../../models/task.model';
@@ -149,7 +149,7 @@ import { TaskModalComponent } from '../../tasks/task-modal/task-modal.component'
         }
 
         <div class="stop-tasks-container">
-          <!-- Arrival Tasks -->
+            <!-- Arrival Tasks -->
           <div class="tasks-section" [class.is-collapsed]="isArrivalCollapsed()">
             <div class="section-header">
               <button
@@ -188,7 +188,7 @@ import { TaskModalComponent } from '../../tasks/task-modal/task-modal.component'
             }
           </div>
 
-          <!-- Departure Tasks -->
+            <!-- Departure Tasks -->
           <div class="tasks-section" [class.is-collapsed]="isDepartureCollapsed()">
             <div class="section-header">
               <button
@@ -229,7 +229,7 @@ import { TaskModalComponent } from '../../tasks/task-modal/task-modal.component'
         </div>
       }
 
-      <!-- Arrival Task Modal -->
+        <!-- Arrival Task Modal -->
       @if (showArrivalModal) {
         <app-task-modal
           title="Add Arrival Task for {{ stop.name }}"
@@ -238,7 +238,7 @@ import { TaskModalComponent } from '../../tasks/task-modal/task-modal.component'
         />
       }
 
-      <!-- Departure Task Modal -->
+        <!-- Departure Task Modal -->
       @if (showDepartureModal) {
         <app-task-modal
           title="Add Departure Task for {{ stop.name }}"
@@ -572,7 +572,7 @@ import { TaskModalComponent } from '../../tasks/task-modal/task-modal.component'
     }
   `]
 })
-export class StopCardComponent {
+export class StopCardComponent implements OnInit {
   private tripService = inject(TripService);
 
   @Input({ required: true }) stop!: Stop;
@@ -601,9 +601,38 @@ export class StopCardComponent {
   draggedState: { listType: string; index: number } | null = null;
   dragOverState: { listType: string; index: number } | null = null;
 
-  isCollapsed = signal<boolean>(false);
+  isCollapsed = signal<boolean>(true);
   isArrivalCollapsed = signal<boolean>(true);
   isDepartureCollapsed = signal<boolean>(true);
+
+  ngOnInit(): void {
+    this.isCollapsed.set(!this.isCurrentStop());
+  }
+
+  isCurrentStop(): boolean {
+    if(this.stop?.stopDate) {
+      const parts = this.stop.stopDate.split('-');
+      if(parts.length >= 3) {
+        const startYear = parseInt(parts[0],10);
+        const startMonth = parseInt(parts[1],10) - 1;
+        const startDay = parseInt(parts[2],10);
+        if(!isNaN(startYear) && !isNaN(startMonth) && !isNaN(startDay)) {
+          const startDate = new Date(startYear,startMonth,startDay);
+          console.debug('startDate',startDate);
+          const nights = Math.max(0,this.stop.numberOfNights ?? 1);
+          console.debug('nights',nights);
+          const endDate = new Date(startYear,startMonth,startDay + nights);
+          console.debug('endDate',endDate);
+
+          const now = new Date();
+          const today = new Date(now.getFullYear(),now.getMonth(),now.getDate());
+
+          return today.getTime() >= startDate.getTime() && today.getTime() <= endDate.getTime();
+        }
+      }
+    }
+    return false;
+  }
 
   toggleCollapse(): void {
     this.isCollapsed.update((v) => !v);
