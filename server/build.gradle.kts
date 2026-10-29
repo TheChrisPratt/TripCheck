@@ -56,6 +56,37 @@ tasks.withType<War> {
   archiveBaseName.set("TripCheck")
 }
 
+val processProdResources = tasks.register<ProcessResources>("processProdResources") {
+  description = "Processes the Production Resources"
+  from(sourceSets.main.get().resources) {
+    filesMatching("application.yml") {
+      filter { line: String ->
+        if (line.trim().startsWith("active:")) "    active: prod" else line
+      }
+    }
+  }
+  dependsOn(":client:npmBuild")
+  from(project(":client").file("dist/client/browser")) {
+    into("static")
+  }
+  into(layout.buildDirectory.dir("resources/prod"))
+}
+
+tasks.register<War>("prodWar") {
+  group = "build"
+  description = "Assembles a plain WAR configured with the prod profile."
+  archiveBaseName.set("TripCheck")
+  archiveClassifier.set("prod")
+
+  setClasspath(
+    project.files(
+      sourceSets.main.get().output.classesDirs,
+      processProdResources.map { it.destinationDir },
+      configurations.runtimeClasspath.get() - configurations.providedRuntime.get()
+    )
+  )
+}
+
 tasks.named<ProcessResources>("processResources") {
   dependsOn(":client:npmBuild")
   from(project(":client").file("dist/client/browser")) {
